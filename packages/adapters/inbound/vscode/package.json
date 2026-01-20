@@ -1,0 +1,222 @@
+{
+    "name": "specdriven-agentic",
+    "version": "0.1.0",
+    "displayName": "Spec Driven Assistant",
+    "description": "Spec-Driven Development for AI-Powered Software Engineering",
+    "publisher": "lindoelio",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.93.0"
+    },
+    "categories": [
+        "AI",
+        "Chat",
+        "Programming Languages"
+    ],
+    "activationEvents": [
+        "onStartupFinished",
+        "onChatParticipant:specdriven.spec"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "specdriven.openSteering",
+                "title": "SpecDriven: Open Steering Document",
+                "icon": "$(file)"
+            },
+            {
+                "command": "specdriven.refreshSpecs",
+                "title": "Refresh Specs",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "specdriven.refreshSteering",
+                "title": "Refresh Steering",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "specdriven.refreshTasks",
+                "title": "Refresh Tasks",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "specdriven.openSpecFile",
+                "title": "Open File",
+                "icon": "$(go-to-file)"
+            },
+            {
+                "command": "specdriven.openSpecFolder",
+                "title": "Reveal in Finder",
+                "icon": "$(folder-opened)"
+            },
+            {
+                "command": "specdriven.copySpecId",
+                "title": "Copy Spec ID",
+                "icon": "$(copy)"
+            },
+            {
+                "command": "specdriven.focusSpec",
+                "title": "Focus on Spec",
+                "icon": "$(target)"
+            },
+            {
+                "command": "specdriven.clearSpecFocus",
+                "title": "Show All Tasks",
+                "icon": "$(list-tree)"
+            },
+            {
+                "command": "specdriven.openTaskFile",
+                "title": "Open Tasks File",
+                "icon": "$(go-to-file)"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "specdriven.refreshSpecs",
+                    "when": "view == specdriven.specs",
+                    "group": "navigation"
+                },
+                {
+                    "command": "specdriven.refreshSteering",
+                    "when": "view == specdriven.steering",
+                    "group": "navigation"
+                },
+                {
+                    "command": "specdriven.refreshTasks",
+                    "when": "view == specdriven.tasks",
+                    "group": "navigation"
+                },
+                {
+                    "command": "specdriven.clearSpecFocus",
+                    "when": "view == specdriven.tasks",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "specdriven.openSpecFile",
+                    "when": "view == specdriven.specs && viewItem != spec",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "specdriven.openSpecFolder",
+                    "when": "view == specdriven.specs && viewItem == spec",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "specdriven.copySpecId",
+                    "when": "view == specdriven.specs && viewItem == spec",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "specdriven.focusSpec",
+                    "when": "view == specdriven.tasks && viewItem == spec",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "specdriven.openTaskFile",
+                    "when": "view == specdriven.tasks && viewItem == phase",
+                    "group": "navigation@1"
+                }
+            ]
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "specdriven",
+                    "title": "SpecDriven",
+                    "icon": "$(notebook)"
+                }
+            ]
+        },
+        "views": {
+            "specdriven": [
+                {
+                    "id": "specdriven.specs",
+                    "name": "Specs"
+                },
+                {
+                    "id": "specdriven.steering",
+                    "name": "Steering"
+                },
+                {
+                    "id": "specdriven.tasks",
+                    "name": "Tasks"
+                }
+            ]
+        },
+        "viewsWelcome": [
+            {
+                "view": "specdriven.steering",
+                "contents": "No steering documents found.\nAdd files under .spec/steering to view them here."
+            },
+            {
+                "view": "specdriven.specs",
+                "contents": "No specs found.\nCreate specs via chat or add files under .spec/specs."
+            },
+            {
+                "view": "specdriven.tasks",
+                "contents": "No tasks found.\nCreate a spec first, then tasks will appear here."
+            }
+        ],
+        "chatParticipants": [
+            {
+                "id": "specdriven.spec",
+                "name": "spec",
+                "fullName": "SpecDriven Assistant",
+                "description": "Spec-driven development assistant",
+                "isSticky": true,
+                "commands": [
+                    {
+                        "name": "plan",
+                        "description": "Start planning a new feature (Requirements → Design → Tasks)"
+                    },
+                    {
+                        "name": "requirements",
+                        "description": "Generate requirements using EARS syntax"
+                    },
+                    {
+                        "name": "design",
+                        "description": "Generate architecture design with Mermaid diagrams"
+                    },
+                    {
+                        "name": "tasks",
+                        "description": "Decompose design into implementation tasks"
+                    },
+                    {
+                        "name": "reverse",
+                        "description": "Reverse engineer a spec from existing code"
+                    },
+                    {
+                        "name": "configure",
+                        "description": "Initialize or update steering documents"
+                    },
+                    {
+                        "name": "status",
+                        "description": "Show current spec and task status"
+                    }
+                ]
+            }
+        ]
+    },
+    "scripts": {
+        "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node && cp -r ../../../core/dist/resources dist/resources",
+        "watch": "pnpm build --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit",
+        "package": "pnpm build && vsce package --no-dependencies",
+        "lint": "eslint src --ext ts"
+    },
+    "dependencies": {
+        "@spec-driven/core": "workspace:*",
+        "@spec-driven/adapter-copilot": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.93.0",
+        "@vscode/vsce": "^3.7.1",
+        "esbuild": "^0.27.2",
+        "typescript": "^5.9.3"
+    }
+}
