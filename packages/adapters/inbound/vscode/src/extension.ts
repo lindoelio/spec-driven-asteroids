@@ -8,11 +8,9 @@ import * as vscode from 'vscode';
 import { VsCodeInterfaceAdapter } from './VsCodeInterfaceAdapter';
 import { VsCodeFileSystemAdapter } from './FileSystemAdapter';
 import { SpecsTreeProvider } from './TreeProviders/SpecsTreeProvider';
-import { SteeringTreeProvider } from './TreeProviders/SteeringTreeProvider';
-import { TasksTreeProvider } from './TreeProviders/TasksTreeProvider';
-import { TaskFileWatcher } from './services/TaskFileWatcher';
+import { GuidelinesTreeProvider } from './TreeProviders/GuidelinesTreeProvider';
 import { registerChatParticipant } from './ChatParticipant';
-import { STEERING_PATHS } from '@spec-driven/core';
+import { GUIDELINES_PATHS } from '@spec-driven/core';
 import { CopilotEngineAdapter } from '@spec-driven/adapter-copilot';
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -26,45 +24,36 @@ export async function activate(context: vscode.ExtensionContext) {
     const copilotAdapter = new CopilotEngineAdapter({});
     interfaceAdapter.setEngineAdapter(copilotAdapter);
 
-    const workspaceRoot = fileSystemAdapter.getWorkspaceRoot() ?? '';
+    // Note: Agent skills are created explicitly via /configure command, not on startup
 
-    // Initialize task file watcher for bidirectional sync
-    const taskWatcher = new TaskFileWatcher(interfaceAdapter, workspaceRoot);
-    context.subscriptions.push(taskWatcher);
+    const workspaceRoot = fileSystemAdapter.getWorkspaceRoot() ?? '';
 
     // Register tree views
     const specsProvider = new SpecsTreeProvider(interfaceAdapter);
-    const steeringProvider = new SteeringTreeProvider(fileSystemAdapter);
-    const tasksProvider = new TasksTreeProvider(interfaceAdapter);
-
-    // Connect task watcher for bidirectional sync
-    tasksProvider.connectWatcher(taskWatcher);
+    const guidelinesProvider = new GuidelinesTreeProvider(fileSystemAdapter);
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('specdriven.specs', specsProvider),
-        vscode.window.registerTreeDataProvider('specdriven.steering', steeringProvider),
-        vscode.window.registerTreeDataProvider('specdriven.tasks', tasksProvider)
+        vscode.window.registerTreeDataProvider('specdriven.guidelines', guidelinesProvider)
     );
 
     // Register spec tree commands
     SpecsTreeProvider.registerCommands(context, specsProvider, workspaceRoot);
 
-    // Register task tree commands
-    TasksTreeProvider.registerCommands(context, tasksProvider);
-
     // Register commands
     context.subscriptions.push(
-        vscode.commands.registerCommand('specdriven.openSteering', async () => {
+        vscode.commands.registerCommand('specdriven.openGuidelines', async () => {
             const items = [
-                { label: '$(rocket) Product', description: 'Product vision and goals', path: STEERING_PATHS.product },
-                { label: '$(gear) Tech Stack', description: 'Technology and architecture', path: STEERING_PATHS.tech },
-                { label: '$(symbol-structure) Architecture', description: 'System structure and diagrams', path: STEERING_PATHS.architecture },
-                { label: '$(law) Conventions', description: 'Coding standards', path: STEERING_PATHS.conventions },
-                { label: '$(beaker) Testing', description: 'Testing strategy', path: STEERING_PATHS.testing },
+                { label: '$(person) AGENTS', description: 'AI agent instructions', path: GUIDELINES_PATHS.agents },
+                { label: '$(symbol-structure) Architecture', description: 'System structure and diagrams', path: GUIDELINES_PATHS.architecture },
+                { label: '$(law) Contributing', description: 'Coding standards', path: GUIDELINES_PATHS.contributing },
+                { label: '$(beaker) Testing', description: 'Testing strategy', path: GUIDELINES_PATHS.testing },
+                { label: '$(shield) Security', description: 'Security policy', path: GUIDELINES_PATHS.security },
+                { label: '$(paintcan) Styleguide', description: 'Code style conventions', path: GUIDELINES_PATHS.styleguide },
             ];
 
             const selected = await vscode.window.showQuickPick(items, {
-                placeHolder: 'Select steering document to open',
+                placeHolder: 'Select guideline document to open',
             });
 
             if (selected) {
@@ -80,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
-        vscode.commands.registerCommand('specdriven.openSteeringDoc', async (docPath: string) => {
+        vscode.commands.registerCommand('specdriven.openGuidelinesDoc', async (docPath: string) => {
             const root = fileSystemAdapter.getWorkspaceRoot();
             if (root) {
                 const uri = vscode.Uri.file(`${root}/${docPath}`);
@@ -95,12 +84,8 @@ export async function activate(context: vscode.ExtensionContext) {
             specsProvider.refresh();
         }),
         */
-        vscode.commands.registerCommand('specdriven.refreshSteering', () => {
-            steeringProvider.refresh();
-        }),
-
-        vscode.commands.registerCommand('specdriven.refreshTasks', () => {
-            tasksProvider.refresh();
+        vscode.commands.registerCommand('specdriven.refreshGuidelines', () => {
+            guidelinesProvider.refresh();
         })
     );
 

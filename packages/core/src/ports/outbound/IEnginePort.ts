@@ -6,6 +6,7 @@
  */
 
 import type { PromptStrategy } from '../../strategies/PromptStrategy.js';
+import type { GuidelinesDocs, GuidelineType, FileTree, RepositoryInsights } from '../../domain/Guidelines.js';
 
 /**
  * Context provided to the engine for generating responses.
@@ -17,12 +18,8 @@ export interface PromptContext {
     /** Relevant file contents to include in context */
     files?: FileReference[];
 
-    /** Steering documents content */
-    steering?: {
-        product?: string;
-        tech?: string;
-        conventions?: string;
-    };
+    /** Guideline documents content (root-level standards) */
+    guidelines?: GuidelinesDocs;
 
     /** Previous conversation history */
     history?: ConversationMessage[];
@@ -105,4 +102,43 @@ export interface IEnginePort {
      * Query memory for relevant past decisions.
      */
     queryMemory(query: string): Promise<Record<string, unknown>[]>;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AI-Driven Repository Analysis
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Ask the AI to select which files are relevant for analysis.
+     * The AI examines the file tree and returns paths to files that should be read.
+     *
+     * @param fileTree - The complete file tree of the repository
+     * @returns Array of file paths that the AI determines are relevant for analysis
+     */
+    selectRelevantFiles(fileTree: FileTree): Promise<string[]>;
+
+    /**
+     * Ask the AI to analyze repository contents and produce insights.
+     * The AI examines file contents and produces a technology-agnostic analysis.
+     *
+     * @param fileTree - The complete file tree for context
+     * @param contents - Map of file paths to their contents
+     * @returns Comprehensive repository insights including tech stack, patterns, and conflicts
+     */
+    analyzeRepository(
+        fileTree: FileTree,
+        contents: Map<string, string>
+    ): Promise<RepositoryInsights>;
+
+    /**
+     * Ask the AI to synthesize a specific guideline document.
+     * The AI uses repository insights to generate focused, non-duplicating content.
+     *
+     * @param type - The type of guideline to generate
+     * @param insights - Repository insights from prior analysis
+     * @returns The generated guideline content as markdown
+     */
+    synthesizeGuideline(
+        type: GuidelineType,
+        insights: RepositoryInsights
+    ): Promise<string>;
 }

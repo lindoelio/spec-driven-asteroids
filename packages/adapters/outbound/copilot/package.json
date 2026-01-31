@@ -12,7 +12,7 @@
         }
     },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && cp -r src/resources dist/resources",
         "clean": "rm -rf dist",
         "typecheck": "tsc --noEmit",
         "test": "echo 'No tests yet'"

@@ -3,9 +3,14 @@
  *
  * Searches for relevant documentation and context before planning.
  * Grounding ensures AI responses are based on actual library versions and best practices.
+ * 
+ * When an AI engine is available, uses ContextAgent for intelligent context gathering.
+ * Otherwise falls back to heuristic-based file searching.
  */
 
 import type { IFileSystemPort } from '../ports/outbound/IFileSystemPort.js';
+import type { IEnginePort } from '../ports/outbound/IEnginePort.js';
+import { ContextAgent, type ContextAgentResult } from '../agents/ContextAgent.js';
 
 export interface GroundedContext {
     /** Relevant files from the workspace */
@@ -32,22 +37,62 @@ export interface ExternalDoc {
 
 export interface ContextGrounderDependencies {
     fileSystem: IFileSystemPort;
+    engine?: IEnginePort;
 }
 
 /**
  * ContextGrounder gathers relevant context before AI interactions.
  */
 export class ContextGrounder {
-    constructor(private readonly deps: ContextGrounderDependencies) { }
+    private contextAgent: ContextAgent | null = null;
+
+    constructor(private readonly deps: ContextGrounderDependencies) {
+        if (deps.engine) {
+            this.contextAgent = new ContextAgent({
+                engine: deps.engine,
+                fileSystem: deps.fileSystem,
+            });
+        }
+    }
+
+    /**
+     * Set the engine for AI-powered context gathering.
+     */
+    setEngine(engine: IEnginePort): void {
+        this.contextAgent = new ContextAgent({
+            engine,
+            fileSystem: this.deps.fileSystem,
+        });
+    }
 
     /**
      * Gather context for a feature planning session.
+     * Uses AI-powered ContextAgent when engine is available.
      */
     async gatherContext(featureName: string, userDescription: string): Promise<GroundedContext> {
+        // Detect technologies first (always use heuristics for this)
+        const technologies = await this.detectTechnologies();
+
+        // If AI engine is available, use ContextAgent for intelligent gathering
+        if (this.contextAgent) {
+            try {
+                const aiContext = await this.contextAgent.gatherContext(
+                    featureName,
+                    userDescription,
+                    { technologies }
+                );
+                return this.mergeAiContext(aiContext, technologies);
+            } catch (error) {
+                console.warn('[ContextGrounder] AI context gathering failed, falling back to heuristics:', error);
+                // Fall through to heuristic approach
+            }
+        }
+
+        // Fallback: heuristic-based context gathering
         const context: GroundedContext = {
             workspaceFiles: [],
             externalDocs: [],
-            technologies: [],
+            technologies,
         };
 
         // Extract keywords from feature name and description
@@ -56,10 +101,23 @@ export class ContextGrounder {
         // Scan workspace for relevant files
         context.workspaceFiles = await this.findRelevantFiles(keywords);
 
-        // Detect technologies from workspace
-        context.technologies = await this.detectTechnologies();
-
         return context;
+    }
+
+    /**
+     * Merge AI-gathered context into GroundedContext format.
+     */
+    private mergeAiContext(aiContext: ContextAgentResult, technologies: string[]): GroundedContext {
+        return {
+            workspaceFiles: aiContext.relevantFiles.map(f => ({
+                path: f.path,
+                content: '', // Content would need to be loaded separately if needed
+                relevance: 'high' as const,
+                reason: f.reason,
+            })),
+            externalDocs: [], // AI doesn't provide external docs currently
+            technologies,
+        };
     }
 
     /**

@@ -1,29 +1,25 @@
 /**
  * SpecPlanner Service
  *
- * Orchestrates the planning phase with steering kept fresh throughout:
+ * Orchestrates the planning phase for the Spec-Driven workflow:
  *
- * Flow A (steering missing/incomplete):
- *   Generate Steering → Requirements → Load/Update Steering → Design → Update Steering? → Tasks
+ * Requirements → Design → Tasks
  *
- * Flow B (steering exists and complete):
- *   Requirements → Load/Update Steering → Design → Update Steering? → Tasks
- *
- * Key principle: Steering is validated/updated before each major phase to ensure
- * implementation agents receive current context.
+ * Guidelines are expected to be available at repository root and are injected
+ * through the engine context when needed.
  */
 
 import type { IEnginePort } from '../ports/outbound/IEnginePort.js';
 import type { IFileSystemPort } from '../ports/outbound/IFileSystemPort.js';
 import { Spec } from '../domain/Spec.js';
-import type { SteeringDocs, EngineSkillConfig } from '../domain/Steering.js';
-import { generateAgentSkillTemplate } from '../domain/Steering.js';
+import type { GuidelinesDocs, EngineSkillConfig } from '../domain/Guidelines.js';
+import { generateAgentSkillTemplate } from '../domain/Guidelines.js';
 import { ContextGrounder, type ImpactAnalysis } from './ContextGrounder.js';
 import { EarsStrategy, type IssueContext } from '../strategies/EarsStrategy.js';
 import { DesignStrategy } from '../strategies/DesignStrategy.js';
 import { TaskDecomposerStrategy } from '../strategies/TaskDecomposerStrategy.js';
 import { NamingStrategy } from '../strategies/NamingStrategy.js';
-import { DEFAULT_SKILL_CONFIG } from './SteeringGenerator.js';
+import { DEFAULT_SKILL_CONFIG } from './GuidelinesGenerator.js';
 
 export interface SpecPlannerDependencies {
     engine: IEnginePort;
@@ -32,7 +28,7 @@ export interface SpecPlannerDependencies {
 }
 
 export interface PlanningContext {
-    steering?: SteeringDocs;
+    guidelines?: GuidelinesDocs;
     issueContext?: IssueContext;
     technologies?: string[];
 }
@@ -59,7 +55,10 @@ export class SpecPlanner {
     private skillConfig: EngineSkillConfig;
 
     constructor(private readonly deps: SpecPlannerDependencies) {
-        this.contextGrounder = new ContextGrounder({ fileSystem: deps.fileSystem });
+        this.contextGrounder = new ContextGrounder({
+            fileSystem: deps.fileSystem,
+            engine: deps.engine, // Pass engine for AI-powered context gathering
+        });
         this.skillConfig = deps.skillConfig ?? DEFAULT_SKILL_CONFIG;
     }
 
@@ -108,7 +107,7 @@ export class SpecPlanner {
         const spec = new Spec(id, featureName);
 
         // Create spec directory
-        const specPath = `.spec/specs/${id}`;
+        const specPath = `.spec/changes/${id}`;
         await this.deps.fileSystem.createDirectory(specPath);
 
         // Save initial requirements file (no meta.json)
@@ -147,21 +146,15 @@ export class SpecPlanner {
     /**
      * Generate requirements using EARS strategy.
      *
-     * WORKFLOW: Steering → Requirements → Design → Tasks
-     * Steering should be generated BEFORE calling this method.
+     * WORKFLOW: Guidelines → Requirements → Design → Tasks
+     * Guidelines should be generated BEFORE calling this method.
      */
     async generateRequirements(
         spec: Spec,
         userInput: string,
         context: PlanningContext = {}
     ): Promise<PlanningResult> {
-        // Validate workflow order: steering should exist
-        if (!context.steering) {
-            console.warn(
-                '[SpecPlanner] generateRequirements called without steering context. ' +
-                'For best results, generate steering documents first using SteeringGenerator.'
-            );
-        }
+        // Guidelines are optional but recommended
 
         // Create strategy with context
         const strategy = new EarsStrategy({
@@ -171,7 +164,7 @@ export class SpecPlanner {
 
         const promptContext = {
             specId: spec.id,
-            steering: context.steering,
+            guidelines: context.guidelines,
             history: [{ role: 'user' as const, content: userInput }],
         };
 
@@ -179,7 +172,7 @@ export class SpecPlanner {
         const { summary, content } = this.parseResponse(result);
 
         // Write requirements.md
-        const reqPath = `.spec/specs/${spec.id}/requirements.md`;
+        const reqPath = `.spec/changes/${spec.id}/requirements.md`;
         await this.deps.fileSystem.writeFile(reqPath, content);
 
         // Update spec status
@@ -208,12 +201,11 @@ export class SpecPlanner {
         const strategy = new DesignStrategy({
             technologies: context.technologies,
             impactAnalysis,
-            steeringTech: context.steering?.tech,
         });
 
         const promptContext = {
             specId: spec.id,
-            steering: context.steering,
+            guidelines: context.guidelines,
             history: [{ role: 'user' as const, content: requirements }],
         };
 
@@ -221,7 +213,7 @@ export class SpecPlanner {
         const { summary, content } = this.parseResponse(result);
 
         // Write design.md
-        const designPath = `.spec/specs/${spec.id}/design.md`;
+        const designPath = `.spec/changes/${spec.id}/design.md`;
         await this.deps.fileSystem.writeFile(designPath, content);
 
         // Update spec status
@@ -242,20 +234,25 @@ export class SpecPlanner {
     async generateTasks(
         spec: Spec,
         design: string,
-        options: { suggestTdd?: boolean } = {}
+        options: { suggestTdd?: boolean; requirements?: string } = {}
     ): Promise<PlanningResult> {
         const strategy = new TaskDecomposerStrategy({ suggestTdd: options.suggestTdd });
 
+        // Include both requirements and design for better task context
+        const inputContent = options.requirements
+            ? `## Requirements\n\n${options.requirements}\n\n## Design\n\n${design}`
+            : design;
+
         const promptContext = {
             specId: spec.id,
-            history: [{ role: 'user' as const, content: design }],
+            history: [{ role: 'user' as const, content: inputContent }],
         };
 
         const result = await this.deps.engine.prompt(strategy, promptContext);
         const { summary, content } = this.parseResponse(result);
 
         // Write tasks.md
-        const tasksPath = `.spec/specs/${spec.id}/tasks.md`;
+        const tasksPath = `.spec/changes/${spec.id}/tasks.md`;
         await this.deps.fileSystem.writeFile(tasksPath, content);
 
         // Ensure Agent Skill exists for implementation
@@ -292,7 +289,7 @@ export class SpecPlanner {
      * Load an existing spec from disk.
      */
     async loadSpec(specId: string): Promise<Spec | null> {
-        const specPath = `.spec/specs/${specId}`;
+        const specPath = `.spec/changes/${specId}`;
         const reqPath = `${specPath}/requirements.md`;
         const designPath = `${specPath}/design.md`;
         const tasksPath = `${specPath}/tasks.md`;
@@ -327,7 +324,7 @@ export class SpecPlanner {
      * Read requirements from a spec.
      */
     async readRequirements(specId: string): Promise<string | null> {
-        const path = `.spec/specs/${specId}/requirements.md`;
+        const path = `.spec/changes/${specId}/requirements.md`;
         if (!await this.deps.fileSystem.exists(path)) {
             return null;
         }
@@ -338,7 +335,7 @@ export class SpecPlanner {
      * Read design from a spec.
      */
     async readDesign(specId: string): Promise<string | null> {
-        const path = `.spec/specs/${specId}/design.md`;
+        const path = `.spec/changes/${specId}/design.md`;
         if (!await this.deps.fileSystem.exists(path)) {
             return null;
         }
@@ -349,7 +346,7 @@ export class SpecPlanner {
      * Read tasks from a spec.
      */
     async readTasks(specId: string): Promise<string | null> {
-        const path = `.spec/specs/${specId}/tasks.md`;
+        const path = `.spec/changes/${specId}/tasks.md`;
         if (!await this.deps.fileSystem.exists(path)) {
             return null;
         }

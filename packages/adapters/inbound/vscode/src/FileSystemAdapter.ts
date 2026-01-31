@@ -11,6 +11,8 @@ import type {
     DirectoryEntry,
     FileChangeEvent,
     Disposable,
+    FileTree,
+    FileNode,
 } from '@spec-driven/core';
 
 export class VsCodeFileSystemAdapter implements IFileSystemPort {
@@ -96,6 +98,74 @@ export class VsCodeFileSystemAdapter implements IFileSystemPort {
     async findFiles(pattern: string, exclude?: string): Promise<string[]> {
         const uris = await vscode.workspace.findFiles(pattern, exclude);
         return uris.map(uri => uri.fsPath);
+    }
+
+    async listFilesRecursive(maxDepth: number = 10): Promise<FileTree> {
+        const root = this.getWorkspaceRoot();
+        if (!root) {
+            return { nodes: [], totalFiles: 0, maxDepth: 0 };
+        }
+
+        const nodes: FileNode[] = [];
+        let totalFiles = 0;
+
+        const traverse = async (dirPath: string, currentDepth: number): Promise<void> => {
+            if (currentDepth > maxDepth) return;
+
+            try {
+                const entries = await this.readDirectory(dirPath);
+
+                for (const entry of entries) {
+                    const relativePath = dirPath === root
+                        ? entry.name
+                        : `${dirPath.substring(root.length + 1)}/${entry.name}`;
+                    const fullPath = `${dirPath}/${entry.name}`;
+
+                    // Skip common directories that shouldn't be analyzed
+                    if (entry.type === 'directory') {
+                        const skipDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache'];
+                        if (skipDirs.includes(entry.name)) continue;
+                    }
+
+                    const extension = entry.type === 'file'
+                        ? entry.name.split('.').pop() ?? ''
+                        : '';
+
+                    let size = 0;
+                    if (entry.type === 'file') {
+                        try {
+                            const stat = await this.stat(fullPath);
+                            size = stat.size;
+                        } catch {
+                            // Skip files we can't stat
+                            continue;
+                        }
+                        totalFiles++;
+                    }
+
+                    nodes.push({
+                        path: relativePath,
+                        type: entry.type,
+                        size,
+                        extension,
+                    });
+
+                    if (entry.type === 'directory') {
+                        await traverse(fullPath, currentDepth + 1);
+                    }
+                }
+            } catch {
+                // Skip directories we can't read
+            }
+        };
+
+        await traverse(root, 0);
+
+        return {
+            nodes,
+            totalFiles,
+            maxDepth,
+        };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

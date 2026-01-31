@@ -55,7 +55,7 @@ export class TaskManager {
      * Parse a tasks.md file into structured data.
      */
     async parseTaskFile(specId: string): Promise<TaskFile | null> {
-        const path = `.spec/specs/${specId}/tasks.md`;
+        const path = `.spec/changes/${specId}/tasks.md`;
 
         if (!await this.deps.fileSystem.exists(path)) {
             return null;
@@ -290,7 +290,7 @@ export class TaskManager {
         };
 
         // Save back to file
-        const path = `.spec/specs/${specId}/tasks.md`;
+        const path = `.spec/changes/${specId}/tasks.md`;
         await this.deps.fileSystem.writeFile(path, this.serializeTaskFile(taskFile));
 
         return task;

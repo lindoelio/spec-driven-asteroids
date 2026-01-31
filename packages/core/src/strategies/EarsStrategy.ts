@@ -140,7 +140,7 @@ Start directly with the XML tags. No preamble.
 
 ## Important Rules
 
-1. **User Intent is King**: The user's request is the primary source for WHAT to build. If the User Request conflicts with Steering Documents (e.g., building a standalone app vs a feature), prioritize the User Request for functional goals.
+1. **User Intent is King**: The user's request is the primary source for WHAT to build. If the User Request conflicts with Guideline Documents (e.g., building a standalone app vs a feature), prioritize the User Request for functional goals.
 2. NEVER ask clarifying questions - make reasonable assumptions and note them in the Introduction
 3. Structure requirements around User Stories with numbered Acceptance Criteria
 4. Use EARS patterns (WHEN/THE SHALL, IF/THEN, WHILE, WHERE) consistently in acceptance criteria

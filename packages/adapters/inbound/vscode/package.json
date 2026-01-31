@@ -21,8 +21,8 @@
     "contributes": {
         "commands": [
             {
-                "command": "specdriven.openSteering",
-                "title": "SpecDriven: Open Steering Document",
+                "command": "specdriven.openGuidelines",
+                "title": "SpecDriven: Open Guideline Document",
                 "icon": "$(file)"
             },
             {
@@ -31,13 +31,8 @@
                 "icon": "$(refresh)"
             },
             {
-                "command": "specdriven.refreshSteering",
-                "title": "Refresh Steering",
-                "icon": "$(refresh)"
-            },
-            {
-                "command": "specdriven.refreshTasks",
-                "title": "Refresh Tasks",
+                "command": "specdriven.refreshGuidelines",
+                "title": "Refresh Guidelines",
                 "icon": "$(refresh)"
             },
             {
@@ -54,21 +49,6 @@
                 "command": "specdriven.copySpecId",
                 "title": "Copy Spec ID",
                 "icon": "$(copy)"
-            },
-            {
-                "command": "specdriven.focusSpec",
-                "title": "Focus on Spec",
-                "icon": "$(target)"
-            },
-            {
-                "command": "specdriven.clearSpecFocus",
-                "title": "Show All Tasks",
-                "icon": "$(list-tree)"
-            },
-            {
-                "command": "specdriven.openTaskFile",
-                "title": "Open Tasks File",
-                "icon": "$(go-to-file)"
             }
         ],
         "menus": {
@@ -79,18 +59,8 @@
                     "group": "navigation"
                 },
                 {
-                    "command": "specdriven.refreshSteering",
-                    "when": "view == specdriven.steering",
-                    "group": "navigation"
-                },
-                {
-                    "command": "specdriven.refreshTasks",
-                    "when": "view == specdriven.tasks",
-                    "group": "navigation"
-                },
-                {
-                    "command": "specdriven.clearSpecFocus",
-                    "when": "view == specdriven.tasks",
+                    "command": "specdriven.refreshGuidelines",
+                    "when": "view == specdriven.guidelines",
                     "group": "navigation"
                 }
             ],
@@ -109,16 +79,6 @@
                     "command": "specdriven.copySpecId",
                     "when": "view == specdriven.specs && viewItem == spec",
                     "group": "navigation@2"
-                },
-                {
-                    "command": "specdriven.focusSpec",
-                    "when": "view == specdriven.tasks && viewItem == spec",
-                    "group": "navigation@1"
-                },
-                {
-                    "command": "specdriven.openTaskFile",
-                    "when": "view == specdriven.tasks && viewItem == phase",
-                    "group": "navigation@1"
                 }
             ]
         },
@@ -135,30 +95,22 @@
             "specdriven": [
                 {
                     "id": "specdriven.specs",
-                    "name": "Specs"
+                    "name": "Changes"
                 },
                 {
-                    "id": "specdriven.steering",
-                    "name": "Steering"
-                },
-                {
-                    "id": "specdriven.tasks",
-                    "name": "Tasks"
+                    "id": "specdriven.guidelines",
+                    "name": "Guidelines"
                 }
             ]
         },
         "viewsWelcome": [
             {
-                "view": "specdriven.steering",
-                "contents": "No steering documents found.\nAdd files under .spec/steering to view them here."
+                "view": "specdriven.guidelines",
+                "contents": "No guideline documents found.\nAdd files at the repository root (AGENTS.md, CONTRIBUTING.md, etc.) to view them here."
             },
             {
                 "view": "specdriven.specs",
-                "contents": "No specs found.\nCreate specs via chat or add files under .spec/specs."
-            },
-            {
-                "view": "specdriven.tasks",
-                "contents": "No tasks found.\nCreate a spec first, then tasks will appear here."
+                "contents": "No changes found.\nCreate changes via chat or add files under .spec/changes."
             }
         ],
         "chatParticipants": [
@@ -171,27 +123,11 @@
                 "commands": [
                     {
                         "name": "plan",
-                        "description": "Start planning a new feature (Requirements → Design → Tasks)"
-                    },
-                    {
-                        "name": "requirements",
-                        "description": "Generate requirements using EARS syntax"
-                    },
-                    {
-                        "name": "design",
-                        "description": "Generate architecture design with Mermaid diagrams"
-                    },
-                    {
-                        "name": "tasks",
-                        "description": "Decompose design into implementation tasks"
-                    },
-                    {
-                        "name": "reverse",
-                        "description": "Reverse engineer a spec from existing code"
+                        "description": "Start planning a new feature (Requirements \u2192 Design \u2192 Tasks)"
                     },
                     {
                         "name": "configure",
-                        "description": "Initialize or update steering documents"
+                        "description": "Initialize or update guideline documents"
                     },
                     {
                         "name": "status",
@@ -202,7 +138,7 @@
         ]
     },
     "scripts": {
-        "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node && cp -r ../../../core/dist/resources dist/resources",
+        "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node && cp -r ../../../core/dist/resources dist/resources && cp -r ../../outbound/copilot/dist/resources dist/copilot-resources",
         "watch": "pnpm build --watch",
         "clean": "rm -rf dist",
         "typecheck": "tsc --noEmit",

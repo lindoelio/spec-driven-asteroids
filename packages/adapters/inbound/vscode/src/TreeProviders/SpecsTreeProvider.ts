@@ -34,7 +34,7 @@ export class SpecsTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> 
             }
 
             return specs.map(spec => new SpecTreeItem(
-                spec.featureName,
+                spec.id,
                 spec.id,
                 'spec',
                 spec.status,
@@ -72,8 +72,8 @@ export class SpecsTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> 
             ));
         }
 
-        // Tasks (show if tasks exist)
-        if (spec.tasks.length > 0) {
+        // Tasks (show if tasks.md exists)
+        if ((spec as { tasksContent?: string }).tasksContent) {
             children.push(new SpecTreeItem(
                 `Tasks${spec.taskCount > 0 ? ` (${spec.completedTaskCount}/${spec.taskCount})` : ''}`,
                 element.specId,
@@ -131,7 +131,7 @@ export class SpecsTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> 
         // Open spec folder
         context.subscriptions.push(
             vscode.commands.registerCommand('specdriven.openSpecFolder', async (item: SpecTreeItem) => {
-                const folderPath = vscode.Uri.file(`${workspaceRoot}/.spec/specs/${item.specId}`);
+                const folderPath = vscode.Uri.file(`${workspaceRoot}/.spec/changes/${item.specId}`);
                 await vscode.commands.executeCommand('revealFileInOS', folderPath);
             })
         );
@@ -149,7 +149,7 @@ export class SpecsTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> 
      * Get the file path for a spec item.
      */
     getFilePath(item: SpecTreeItem, workspaceRoot: string): vscode.Uri | null {
-        const basePath = `${workspaceRoot}/.spec/specs/${item.specId}`;
+        const basePath = `${workspaceRoot}/.spec/changes/${item.specId}`;
 
         switch (item.itemType) {
             case 'requirements':

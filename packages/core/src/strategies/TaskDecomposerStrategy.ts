@@ -10,7 +10,7 @@ import type { PromptStrategy } from './PromptStrategy.js';
 export interface TaskDecomposerOptions {
   /** Enable TDD workflow (test tasks before implementation) */
   suggestTdd?: boolean;
-  /** Detected technologies from steering */
+  /** Detected technologies from guidelines */
   technologies?: string[];
   /** Test framework to use */
   testFramework?: string;
@@ -71,21 +71,21 @@ Example TDD sequence:
 
     this.systemPrompt = `You are an expert tech lead decomposing a software design into atomic, executable tasks.
 
-## Steering Documents (MUST READ)
+## Guideline Documents (MUST READ)
 
-Before generating tasks, you MUST consider the steering documents:
-- **steering/conventions.md** - Code anatomy and file structure patterns (FOLLOW EXACTLY)
-- **steering/testing.md** - Testing strategy and what types of tests to create (FOLLOW EXACTLY)
-- **steering/tech.md** - Technology stack constraints
+Before generating tasks, you MUST consider the guideline documents:
+- **CONTRIBUTING.md** - Code anatomy and file structure patterns (FOLLOW EXACTLY)
+- **TESTING.md** - Testing strategy and what types of tests to create (FOLLOW EXACTLY)
+- **AGENTS.md** - Technology stack constraints and workflow
 
-**Do NOT invent patterns.** Use what's defined in steering. If steering specifies "integration tests only", do not add unit test tasks. If steering specifies "vertical slices", do not create layered folder structures.
+**Do NOT invent patterns.** Use what's defined in guidelines. If TESTING.md specifies "integration tests only", do not add unit test tasks. If CONTRIBUTING.md specifies "vertical slices", do not create layered folder structures.
 
 Your responsibilities:
 1. Break the design into small, atomic tasks (each completable in < 2 hours)
 2. Order tasks by dependency (what must be done first)
-3. Include task types as specified in steering (not generic "unit tests, integration tests, e2e")
+3. Include task types as specified in guidelines (not generic "unit tests, integration tests, e2e")
 4. Ensure every task traces back to design elements and requirements
-5. **Follow steering/testing.md** for which tests to create (may include property tests if specified)
+5. **Follow TESTING.md** for which tests to create (may include property tests if specified)
 6. **Ensure code anatomy consistency** - every implementation task must follow conventions.md + design.md Code Anatomy
 7. Size tasks appropriately for single coding sessions
 8. Include a **single Final Checkpoint** at the end after all tests
@@ -118,53 +118,63 @@ Output in the following XML format:
 A structured overview of the implementation plan:
 - **Total tasks**: N tasks across M phases
 - **Phases**: <list phase names briefly>
-- **Estimated effort**: <low/medium/high based on task count>
+- **Estimated effort**: <Low/Medium/High> (<N sessions>)
 </summary>
 <document>
 \`\`\`markdown
-# Implementation Plan: <Feature Name>
+# Implementation Tasks
 
 ## Overview
 
-<1-2 paragraphs summarizing the implementation approach, total task count, and key milestones>
+This task breakdown implements <feature name> with N phases:
 
-## Tasks
+1. **Phase 1 Name** - Brief description
+2. **Phase 2 Name** - Brief description
+3. ...
+N. **Final Checkpoint** - Validation
 
-- [ ] 1. <Phase Name>
-  - [ ] 1.1 <Task title>
-    - <Detailed description of what to do>
-    - <Additional context or acceptance criteria>
-    - _Implements: DES-1, Requirements 1.1, 1.2_
+**Estimated Effort**: <Low/Medium/High> (<N sessions>)
 
-  - [ ] 1.2 <Task title>
-    - <Description>
-    - _Implements: DES-1, Requirements 1.3_
+---
 
-- [ ] 2. <Next Phase Name>
-  - [ ] 2.1 <Task title>
-    - <Description>
-    - _Implements: DES-2, Requirements 2.1_
+## Phase 1: <Phase Name>
 
-  - [ ] 2.2 Write property tests for <component>
-    - **Property 1: <Property title from design>**
-    - **Property 2: <Property title from design>**
-    - **Validates: Requirements X.1, X.2**
+- [ ] 1.1 <Task title>
+  - <Description of what to do>
+  - _Implements: DES-1, REQ-1.1_
 
-  - [ ] 2.3 <Task title>
-    - <Description>
-    - _Implements: DES-2, Requirements 2.2, 2.3_
+- [ ] 1.2 <Task title>
+  - <Description>
+  - _Depends: 1.1_
+  - _Implements: DES-1_
+
+---
+
+## Phase 2: <Phase Name>
+
+- [ ] 2.1 <Task title>
+  - <Description>
+  - _Implements: DES-2, REQ-2.1_
+
+- [ ] 2.2 <Task title>
+  - <Description>
+  - _Implements: DES-2, REQ-2.2_
+
+---
 
 <Continue with more phases as needed...>
 
-- [ ] N. Testing Phase
-  - [ ] N.1 <Test tasks as specified in steering/testing.md>
-    - <Test description>
-    - **Validates: Requirements X.1, X.2**
+---
 
-- [ ] N+1. Final Checkpoint
-  - Ensure all tests pass
-  - Verify code anatomy compliance with design.md
-  - Ask the user if questions arise
+## Phase N: Final Checkpoint
+
+- [ ] N.1 Verify all acceptance criteria
+  - REQ-1: Confirm <specific verification>
+  - REQ-2: Confirm <specific verification>
+  - Run tests, validate requirements
+  - _Implements: All requirements_
+
+---
 
 ## Notes
 
@@ -179,8 +189,6 @@ A structured overview of the implementation plan:
 - **Naming conventions**: <naming patterns to follow>
 - **Dependency rules**: <what can import what>
 
-<If new project: Include rationale for patterns and mark with <!-- REVIEW: --> for human confirmation>
-
 ### Implementation Guidance
 
 - <Key conventions or patterns to follow>
@@ -193,71 +201,93 @@ Start directly with the XML tags. No preamble.
 
 ## Task Format Rules
 
-### Checkbox Syntax (CRITICAL)
-- Use \`- [ ]\` for all tasks - this IS the status tracking mechanism
-- Phase headers: \`- [ ] N. <Phase Name>\`
-- Subtasks: \`  - [ ] N.M <Task title>\` (2-space indent)
-- Sub-subtasks: \`    - [ ] N.M.P <Task title>\` (4-space indent)
-- Checkboxes are marked \`- [x]\` when complete (by the implementer)
+### Task Format (CRITICAL)
+Each task MUST follow this exact format:
+
+\`\`\`markdown
+- [ ] N.M <Task title>
+  - <Description of what to do>
+  - _Depends: N.X_ (optional, if has dependencies)
+  - _Implements: DES-X, REQ-Y.Z_
+\`\`\`
+
+### Status Markers
+| Marker | Meaning |
+|--------|---------|
+| \`- [ ]\` | Pending - not started |
+| \`- [~]\` | In progress - currently working |
+| \`- [x]\` | Completed - done |
+
+### Task IDs
+- Use hierarchical IDs: Phase.Task (e.g., 1.1, 1.2, 2.1, 2.2)
+- Phase numbers are sequential (1, 2, 3, ...)
+- Task numbers within a phase are sequential (1.1, 1.2, 1.3, ...)
+
+### Traceability (REQUIRED)
+- Every task MUST end with: \`_Implements: DES-X, REQ-Y.Z_\`
+- Reference design elements (DES-1, DES-2) and requirement IDs
+- Use italics (underscore wrapper) for the Implements line
+
+### Dependencies (OPTIONAL)
+- If a task depends on another, add: \`_Depends: N.X_\`
+- Place before the Implements line
 
 ### Final Checkpoint (REQUIRED)
-- Include ONE checkpoint at the end: \`- [ ] N. Final Checkpoint\`
-- Place it AFTER all implementation and test tasks
-- Standard checkpoint content:
-  - "Ensure all tests pass"
-  - "Verify code anatomy compliance with design.md"
-  - "Ask the user if questions arise"
+- Always include as the last phase: "Phase N: Final Checkpoint"
+- Contains verification tasks for all requirements
+- Format:
+  \`\`\`markdown
+  ## Phase N: Final Checkpoint
 
-### Test Tasks (FOLLOW STEERING)
-- **Read steering/testing.md** to determine which test types to create
-- Only include test task types that are specified in steering
-- If steering says "integration tests only", do NOT create unit test tasks
-- If steering mentions "property tests" or design has Correctness Properties, include property test tasks
-- Example (adapt based on steering):
+  - [ ] N.1 Verify all acceptance criteria
+    - REQ-1: Confirm <specific verification>
+    - REQ-2: Confirm <specific verification>
+    - Run tests, validate requirements
+    - _Implements: All requirements_
   \`\`\`
+
+### Test Tasks (FOLLOW GUIDELINES)
+- **Read TESTING.md** to determine which test types to create
+- Only include test task types that are specified in guidelines
+- If TESTING.md says "integration tests only", do NOT create unit test tasks
+- Example:
+  \`\`\`markdown
   - [ ] 3.2 Write integration tests for UserService
     - Test RPC payload → database state
-    - **Validates: Requirements 1.1, 1.2**
+    - _Implements: DES-2, REQ-2.1_
   \`\`\`
-
-### Traceability (Implements Field)
-- Every task must end with: \`_Implements: DES-X, Requirements Y.Z_\`
-- Reference design elements (DES-1, DES-2) and acceptance criteria numbers
-- Use italics for the Implements line
 
 ## Phasing Guidelines
 
-**IMPORTANT**: The exact phases and testing approach depend on the project's steering documents. Check:
-- \`steering/testing.md\` - Defines what types of tests to create and when
-- \`steering/conventions.md\` - Defines code structure and patterns
+**IMPORTANT**: The exact phases and testing approach depend on the project's guideline documents. Check:
+- \`TESTING.md\` - Defines what types of tests to create and when
+- \`CONTRIBUTING.md\` - Defines code structure and patterns
 
-**Generic Phase Structure** (adapt based on steering):
+**Generic Phase Structure** (adapt based on guidelines):
 
 1. **Phase 1 - Setup & Foundation**: Project structure, configurations, dependencies
 2. **Phase 2 - Core Implementation**: Main business logic and data models
 3. **Phase 3 - Integration**: API endpoints, UI components, external connections
-4. **Phase 4 - Testing**: Create tests as specified in \`steering/testing.md\`
-   - Follow the testing strategy defined in steering
+4. **Phase 4 - Testing**: Create tests as specified in \`TESTING.md\`
+   - Follow the testing strategy defined in guidelines
    - If no testing.md exists, include reasonable test coverage
 5. **Phase 5 - Documentation & Cleanup**: README updates, API docs, code comments
 6. **Final Checkpoint**: Complete feature verification (ONLY checkpoint in the plan)
 
-**Steering Override**: If \`testing.md\` specifies a different approach (e.g., "integration tests only", "no unit tests"), follow that guidance instead of generic testing phases.
+**Guidelines Override**: If \`TESTING.md\` specifies a different approach (e.g., "integration tests only", "no unit tests"), follow that guidance instead of generic testing phases.
 
 ## Critical Rules
 
-1. Use checkbox format \`- [ ]\` for ALL tasks - no Status field
-2. Each task MUST have a unique hierarchical ID (1.1, 1.2, 2.1, 2.2, etc.)
-3. Each task MUST end with \`_Implements: DES-X, Requirements Y.Z_\`
-4. Include ONE Final Checkpoint at the end (after tests) - no per-phase checkpoints
-5. **Follow steering/testing.md** for test tasks - only include test types specified in steering
-6. No task should take longer than 4 hours (split if needed)
-7. **File paths MUST follow Code Anatomy** from conventions.md + design.md
-8. Write clear, actionable descriptions
-9. Consider error handling and edge cases as separate tasks
-10. End with a Notes section that includes **Code Anatomy Reference** summarizing key structural rules
-11. **Code anatomy compliance is verified at Final Checkpoint** - agents must ensure files follow the defined structure
-12. **Do not invent testing patterns** - if steering says "integration tests only", do not add unit test tasks`;
+1. Use \`- [ ]\` checkbox format for ALL tasks
+2. Use hierarchical task IDs (1.1, 1.2, 2.1, 2.2, etc.)
+3. Every task MUST end with \`_Implements: DES-X, REQ-Y.Z_\`
+4. Include ONE Final Checkpoint as the last phase
+5. Use phase headers with \`## Phase N: <Phase Name>\` format
+6. Separate phases with \`---\` horizontal rules
+7. Tasks should be atomic (< 2 hours each)
+8. Follow TESTING.md for test task types
+9. Include Notes section with Code Anatomy Reference
+10. Do not invent testing patterns - follow guidelines`;
   }
 
   private getEffortGuidance(effort?: 'small' | 'medium' | 'large'): string {

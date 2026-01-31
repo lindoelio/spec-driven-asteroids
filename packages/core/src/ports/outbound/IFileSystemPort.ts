@@ -5,6 +5,8 @@
  * Abstracts away VS Code's workspace.fs, Node's fs, or any other implementation.
  */
 
+import type { FileTree } from '../../domain/Guidelines.js';
+
 /**
  * Represents a file or directory.
  */
@@ -93,6 +95,15 @@ export interface IFileSystemPort {
      * Find files matching a glob pattern.
      */
     findFiles(pattern: string, exclude?: string): Promise<string[]>;
+
+    /**
+     * List all files recursively from the workspace root.
+     * Returns a FileTree structure for AI analysis.
+     *
+     * @param maxDepth - Maximum directory depth to traverse (default: 10)
+     * @returns FileTree with all discovered files and directories
+     */
+    listFilesRecursive(maxDepth?: number): Promise<FileTree>;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Watching

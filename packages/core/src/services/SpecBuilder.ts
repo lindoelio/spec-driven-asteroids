@@ -8,7 +8,7 @@
 import type { IEnginePort, Checkpoint, FileReference } from '../ports/outbound/IEnginePort.js';
 import type { IFileSystemPort } from '../ports/outbound/IFileSystemPort.js';
 import type { Task } from '../domain/Task.js';
-import type { SteeringDocs } from '../domain/Steering.js';
+import type { GuidelinesDocs } from '../domain/Guidelines.js';
 
 export interface SpecBuilderDependencies {
     engine: IEnginePort;
@@ -18,7 +18,7 @@ export interface SpecBuilderDependencies {
 export interface ImplementationContext {
     requirements: string;
     design: string;
-    steering: SteeringDocs;
+    guidelines: GuidelinesDocs;
     targetFileContents?: FileReference[];
     relatedTasks?: Task[];
     projectDocs?: Record<string, string>;
@@ -55,7 +55,7 @@ const DEFAULT_OPTIONS: BuilderOptions = {
  * SpecBuilder handles code generation from tasks.
  *
  * The Builder agent:
- * - Loads all relevant context (design, requirements, steering, memory)
+ * - Loads all relevant context (design, requirements, guidelines, memory)
  * - Injects target file contents for modification
  * - Generates implementation via engine
  * - Validates and saves checkpoint
@@ -75,7 +75,7 @@ export class SpecBuilder {
         baseContext: {
             requirements: string;
             design: string;
-            steering: SteeringDocs;
+            guidelines: GuidelinesDocs;
             projectDocs?: Record<string, string>;
         },
         options: BuilderOptions = {}
@@ -97,7 +97,7 @@ export class SpecBuilder {
                 {
                     specId: task.specId,
                     files: context.targetFileContents,
-                    steering: context.steering,
+                    guidelines: context.guidelines,
                     memory: checkpoint?.decisions,
                     history: [{ role: 'user', content: prompt }],
                 }
@@ -129,7 +129,7 @@ export class SpecBuilder {
         baseContext: {
             requirements: string;
             design: string;
-            steering: SteeringDocs;
+            guidelines: GuidelinesDocs;
             projectDocs?: Record<string, string>;
         },
         options: BuilderOptions = {}
@@ -145,7 +145,7 @@ export class SpecBuilder {
             {
                 specId: task.specId,
                 files: context.targetFileContents,
-                steering: context.steering,
+                guidelines: context.guidelines,
                 memory: checkpoint?.decisions,
                 history: [{ role: 'user', content: prompt }],
             }
@@ -169,7 +169,7 @@ export class SpecBuilder {
         baseContext: {
             requirements: string;
             design: string;
-            steering: SteeringDocs;
+            guidelines: GuidelinesDocs;
             projectDocs?: Record<string, string>;
         },
         options: BuilderOptions = {}
@@ -211,7 +211,7 @@ export class SpecBuilder {
      */
     private async buildFullContext(
         task: Task,
-        baseContext: { requirements: string; design: string; steering: SteeringDocs; projectDocs?: Record<string, string> },
+        baseContext: { requirements: string; design: string; guidelines: GuidelinesDocs; projectDocs?: Record<string, string> },
         options: BuilderOptions
     ): Promise<ImplementationContext> {
         const context: ImplementationContext = { ...baseContext };

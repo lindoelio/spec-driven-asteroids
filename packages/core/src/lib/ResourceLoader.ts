@@ -24,20 +24,35 @@ const RESOURCE_BASE_CANDIDATES = [
 ];
 
 /**
+ * Guideline types for the new guidelines system.
+ */
+export type GuidelinesTemplateType =
+    | 'agents'
+    | 'architecture'
+    | 'contributing'
+    | 'testing'
+    | 'security'
+    | 'styleguide';
+
+/**
  * Resource paths relative to the resources directory.
  */
 export const RESOURCE_PATHS = {
     templates: {
-        steering: {
-            product: 'templates/steering/product.md',
-            tech: 'templates/steering/tech.md',
-            architecture: 'templates/steering/architecture.md',
-            conventions: 'templates/steering/conventions.md',
-            testing: 'templates/steering/testing.md',
+        guidelines: {
+            agents: 'templates/guidelines/AGENTS.md',
+            architecture: 'templates/guidelines/ARCHITECTURE.md',
+            contributing: 'templates/guidelines/CONTRIBUTING.md',
+            testing: 'templates/guidelines/TESTING.md',
+            security: 'templates/guidelines/SECURITY.md',
+            styleguide: 'templates/guidelines/STYLEGUIDE.md',
         },
-        agentSkill: 'templates/agent-skill.md',
-        copilotInstructions: 'templates/copilot-instructions.md',
-        copilotInstructionsAppend: 'templates/copilot-instructions-append.md',
+        skills: {
+            requirementsWriter: 'templates/skills/sdd-requirements-writer.md',
+            technicalDesigner: 'templates/skills/sdd-technical-designer.md',
+            taskDecomposer: 'templates/skills/sdd-task-decomposer.md',
+            taskImplementer: 'templates/skills/sdd-task-implementer.md',
+        },
     },
 } as const;
 
@@ -87,43 +102,30 @@ export function loadResource(relativePath: string): string {
 }
 
 /**
- * Load a default steering file.
- * Defaults now map to steering templates.
+ * Load a guidelines template file.
+ * Guidelines are community-standard files at the repository root.
  */
-export function loadDefault(type: 'tech' | 'conventions' | 'product' | 'testing' | 'architecture'): string {
-    return loadResource(RESOURCE_PATHS.templates.steering[type]);
+export function loadGuidelinesTemplate(type: GuidelinesTemplateType): string {
+    return loadResource(RESOURCE_PATHS.templates.guidelines[type]);
 }
 
 /**
- * Load a steering template file.
+ * Load an agent skill template file.
+ * These are the phase-specific agent skills.
  */
-export function loadSteeringTemplate(
-    type: 'tech' | 'conventions' | 'product' | 'testing' | 'architecture'
+export function loadAgentSkillTemplateByType(
+    type: 'requirementsWriter' | 'technicalDesigner' | 'taskDecomposer' | 'taskImplementer'
 ): string {
-    return loadResource(RESOURCE_PATHS.templates.steering[type]);
+    return loadResource(RESOURCE_PATHS.templates.skills[type]);
 }
 
 /**
- * Load the agent skill template.
+ * Load the task implementer skill template.
  * @param skillName - The skill name to substitute in the template
  */
-export function loadAgentSkillTemplate(skillName: string = 'spec-driven-implementation'): string {
-    const template = loadResource(RESOURCE_PATHS.templates.agentSkill);
+export function loadAgentSkillTemplate(skillName: string = 'sdd-task-implementer'): string {
+    const template = loadResource(RESOURCE_PATHS.templates.skills.taskImplementer);
     return template.replace(/\{\{SKILL_NAME\}\}/g, skillName);
-}
-
-/**
- * Load the copilot instructions template.
- */
-export function loadCopilotInstructionsTemplate(): string {
-    return loadResource(RESOURCE_PATHS.templates.copilotInstructions);
-}
-
-/**
- * Load the copilot instructions append section.
- */
-export function loadCopilotInstructionsAppend(): string {
-    return loadResource(RESOURCE_PATHS.templates.copilotInstructionsAppend);
 }
 
 /**

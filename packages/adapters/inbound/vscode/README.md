@@ -50,14 +50,14 @@ Requirement → Design → Task → Implementation
 ```
 
 This extension enforces this workflow through:
-- **Steering Documents**: Project-wide guidelines (tech stack, conventions)
+- **Guidelines**: Project-wide documents at repo root (AGENTS.md, CONTRIBUTING.md, TESTING.md, etc.)
 - **Specs**: Feature-specific requirements, design, and tasks
 - **Traceability**: Every task links back to requirements
 
 ### Three Ways to Interact
 
 1. **@spec Chat Participant** - Natural language planning in Copilot Chat
-2. **Sidebar Views** - Visual management of specs, steering, and tasks
+2. **Sidebar Views** - Visual management of specs, guidelines, and tasks
 3. **Context Menus** - Right-click actions in the Explorer
 
 ---
@@ -66,31 +66,31 @@ This extension enforces this workflow through:
 
 When starting a fresh project, follow this sequence to establish a solid foundation.
 
-### Step 1: Initialize Steering Documents
+### Step 1: Initialize Guidelines
 
-Steering documents define your project's DNA - the technology choices, coding conventions, and product vision that guide all development.
+Guidelines define your project's DNA - the technology choices, coding conventions, and product vision that guide all development. These are community-standard files at the repository root.
 
 **Option A: Manual Initialization**
 1. Click the **SpecDriven** icon in the Activity Bar
-2. In the **Steering** view, click **Initialize Steering**
-3. This creates `.spec/steering/` with template files
+2. In the **Guidelines** view, click **Initialize Guidelines**
+3. This creates root-level guideline files (AGENTS.md, CONTRIBUTING.md, etc.)
 
 **Option B: Using Chat**
 ```
-@spec Initialize steering documents for my project
+@spec /configure
 ```
 
-### Step 2: Define Your Steering
+### Step 2: Define Your Guidelines
 
-Edit the generated files in `.spec/steering/`:
+Edit the generated files at your repository root:
 
 | File | Purpose | Example Content |
 |------|---------|-----------------|
-| `product.md` | Business context, goals, target users | "B2B SaaS for inventory management" |
-| `tech.md` | Technology stack, architecture decisions | "Next.js 14, PostgreSQL, Prisma ORM" |
-| `conventions.md` | Coding standards, naming patterns | "Use kebab-case for files, PascalCase for components" |
+| `AGENTS.md` | AI agent instructions, product vision | "B2B SaaS for inventory management" |
+| `ARCHITECTURE.md` | System structure, patterns, diagrams | "Hexagonal architecture with ports and adapters" |
+| `CONTRIBUTING.md` | Coding standards, naming patterns, tech stack | "Next.js 14, PostgreSQL, Prisma ORM" |
 
-**💡 Tip:** Be specific in `tech.md` about versions and patterns. This helps the AI generate compatible code.
+**💡 Tip:** Be specific in `CONTRIBUTING.md` about versions and patterns. This helps the AI generate compatible code.
 
 ### Step 3: Plan Your First Feature
 
@@ -121,14 +121,14 @@ Or click the **Implement** button on any task in the sidebar.
 
 For brownfield projects, start by reverse-engineering specs from your codebase.
 
-### Step 1: Generate Tech Steering
+### Step 1: Generate Guidelines from Project
 
 Let the AI analyze your project structure:
 
-1. In the **Steering** view, click **Generate from Project** (sparkle icon)
+1. In the **Guidelines** view, click **Generate from Project** (sparkle icon)
 2. Or use chat:
    ```
-   @spec Analyze this project and generate tech steering
+   @spec Analyze this project and generate guidelines
    ```
 
 This scans your codebase for:
@@ -315,11 +315,7 @@ Shows:
 | Command | Purpose | Example |
 |---------|---------|---------|
 | `/plan` | Full workflow: Requirements → Design → Tasks | `@spec /plan Add user notifications` |
-| `/requirements` | Generate only requirements (EARS format) | `@spec /requirements Email verification flow` |
-| `/design` | Generate architecture design | `@spec /design API gateway for microservices` |
-| `/tasks` | Decompose into implementation tasks | `@spec /tasks Break down the auth design into tasks` |
-| `/implement` | Implement the current/next task | `@spec /implement` |
-| `/reverse` | Reverse engineer from code | `@spec /reverse src/features/auth` |
+| `/configure` | Initialize or update guideline documents | `@spec /configure` |
 | `/status` | Show specs and task progress | `@spec /status` |
 
 ### Natural Language Variations
@@ -342,8 +338,8 @@ You can also use natural language:
 - **Status icons**: Draft, In Progress, Complete
 - **Actions**: Open file, Delete spec, Copy ID
 
-### Steering View
-- **Documents**: product.md, tech.md, conventions.md
+### Guidelines View
+- **Documents**: AGENTS.md, ARCHITECTURE.md, CONTRIBUTING.md, TESTING.md, SECURITY.md
 - **Actions**: Generate from project, Edit document
 - **Indicators**: Missing documents highlighted
 
@@ -365,7 +361,7 @@ You can also use natural language:
 
 ## Best Practices
 
-### 1. Always Start with Steering
+### 1. Always Start with Guidelines
 
 Even for small projects, define your tech stack and conventions. This gives the AI crucial context for generating compatible code.
 
@@ -418,11 +414,11 @@ Reference related features in your planning:
 
 ## Troubleshooting
 
-### "No steering documents found"
+### "No guidelines found"
 
-**Solution:** Initialize steering first
+**Solution:** Initialize guidelines first
 ```
-@spec Initialize steering documents
+@spec /configure
 ```
 
 ### "@spec not responding"
@@ -434,9 +430,9 @@ Reference related features in your planning:
 
 ### Generated code doesn't match my stack
 
-**Solution:** Update `tech.md` with specific versions:
+**Solution:** Update `CONTRIBUTING.md` with specific versions:
 ```markdown
-## Stack
+## Tech Stack
 - Node.js 20.x
 - TypeScript 5.3
 - React 18 with hooks (no class components)
@@ -463,13 +459,15 @@ Reference related features in your planning:
 
 ```
 your-project/
+├── # Guidelines (repo root)
+├── AGENTS.md             # AI agent instructions & product vision
+├── ARCHITECTURE.md       # System structure & diagrams
+├── CONTRIBUTING.md       # Coding standards & tech stack
+├── TESTING.md            # Testing strategy
+├── SECURITY.md           # Security policy
+│
 ├── .spec/
-│   ├── steering/
-│   │   ├── product.md      # Business context
-│   │   ├── tech.md         # Technology stack
-│   │   └── conventions.md  # Coding standards
-│   │
-│   ├── specs/
+│   ├── changes/
 │   │   ├── user-authentication/
 │   │   │   ├── requirements.md
 │   │   │   ├── design.md

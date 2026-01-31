@@ -7,7 +7,7 @@
 
 import type { SpecSummary, SpecDetail } from '../../domain/Spec.js';
 import type { Task, TaskStatus } from '../../domain/Task.js';
-import type { SteeringDocs } from '../../domain/Steering.js';
+import type { GuidelinesDocs } from '../../domain/Guidelines.js';
 
 /**
  * Session representing an active spec creation/editing workflow.
@@ -70,23 +70,28 @@ export interface IInterfacePort {
     focusTask(taskId: string): Promise<void>;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Steering
+    // Guidelines (New)
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * Get current steering documents.
+     * Get current guideline documents.
      */
-    getSteering(): Promise<SteeringDocs>;
+    getGuidelines(): Promise<GuidelinesDocs>;
 
     /**
-     * Auto-generate steering from project analysis.
+     * Initialize guideline documents.
      */
-    generateSteering(projectPath: string): Promise<SteeringDocs>;
+    initializeGuidelines(): Promise<GuidelinesDocs>;
 
     /**
-     * Update a steering document.
+     * Generate all guidelines.
      */
-    updateSteering(docType: keyof SteeringDocs, content: string): Promise<void>;
+    generateAllGuidelines(userInquiry?: string): Promise<GuidelinesDocs>;
+
+    /**
+     * Check if guidelines are initialized.
+     */
+    isGuidelinesInitialized(): Promise<boolean>;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Reverse Engineering

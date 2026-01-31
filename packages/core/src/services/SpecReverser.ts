@@ -689,7 +689,7 @@ export class SpecReverser {
         options: ReverseEngineerOptions
     ): Promise<SpecDetail> {
         const specId = cluster.name.toLowerCase().replace(/\s+/g, '-');
-        const specPath = `.spec/specs/${specId}`;
+        const specPath = `.spec/changes/${specId}`;
 
         // Read cluster file contents for analysis
         const fileContents: FileReference[] = [];

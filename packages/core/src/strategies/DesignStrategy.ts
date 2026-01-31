@@ -11,8 +11,8 @@ export interface DesignStrategyOptions {
     technologies?: string[];
     /** Impact analysis results */
     impactAnalysis?: ImpactAnalysisResult;
-    /** Steering docs for architecture guidance */
-    steeringTech?: string;
+    /** Guidelines docs for architecture guidance */
+    guidelinesAgents?: string;
     /** Existing component patterns from codebase */
     existingPatterns?: string[];
 }
@@ -42,8 +42,8 @@ ${options.impactAnalysis.potentiallyAffectedFiles.slice(0, 10).map(f => `  - ${f
 ${options.impactAnalysis.potentiallyAffectedFiles.length > 10 ? `  - ... and ${options.impactAnalysis.potentiallyAffectedFiles.length - 10} more` : ''}`
             : '';
 
-        const steeringContext = options.steeringTech
-            ? `\n\n**Tech Steering**:\n${options.steeringTech.slice(0, 1000)}`
+        const guidelinesContext = options.guidelinesAgents
+            ? `\n\n**Guidelines (AGENTS.md)**:\n${options.guidelinesAgents.slice(0, 1000)}`
             : '';
 
         const patternsContext = options.existingPatterns?.length
@@ -51,28 +51,27 @@ ${options.impactAnalysis.potentiallyAffectedFiles.length > 10 ? `  - ... and ${o
             : '';
 
         this.systemPrompt = `You are a software architect creating a technical design document.
-${techContext}${impactContext}${steeringContext}${patternsContext}
+${techContext}${impactContext}${guidelinesContext}${patternsContext}
 
-## Steering Documents (MUST FOLLOW)
+## Guideline Documents (MUST FOLLOW)
 
-Before designing, you MUST consider the steering documents:
-- **steering/conventions.md** - Code anatomy, file structure, naming patterns (FOLLOW EXACTLY)
-- **steering/testing.md** - Testing strategy and philosophy (REFERENCE in Testing Strategy section)
-- **steering/tech.md** - Technology stack and architectural constraints
-- **steering/architecture.md** - Architecture and system diagrams
-- **steering/product.md** - Product goals and non-goals
+Before designing, you MUST consider the guideline documents:
+- **CONTRIBUTING.md** - Code anatomy, file structure, naming patterns (FOLLOW EXACTLY)
+- **TESTING.md** - Testing strategy and philosophy (REFERENCE in Testing Strategy section)
+- **AGENTS.md** - Technology stack and architectural constraints
+- **ARCHITECTURE.md** - Architecture and system diagrams
 
-**Do NOT invent patterns that conflict with steering.** If steering specifies "vertical slices", do not design layered architecture. If steering specifies "integration tests only", do not design for unit test coverage.
+**Do NOT invent patterns that conflict with guidelines.** If CONTRIBUTING.md specifies "vertical slices", do not design layered architecture. If TESTING.md specifies "integration tests only", do not design for unit test coverage.
 
 ## Your Process
 
-1. **Read Steering**: Load conventions.md, testing.md, tech.md, architecture.md for constraints
+1. **Read Guidelines**: Load CONTRIBUTING.md, TESTING.md, AGENTS.md, ARCHITECTURE.md for constraints
 2. **Analyze Requirements**: Understand every Requirement and its numbered acceptance criteria
-3. **Design Components**: Create modular, testable components following steering patterns
+3. **Design Components**: Create modular, testable components following guideline patterns
 4. **Define Interfaces**: Use Mermaid class diagrams for contracts between components
 5. **Visualize**: Use Mermaid diagrams for all architecture visualization
-6. **Code Anatomy**: Define file structure following conventions.md patterns
-7. **Testing Strategy**: Reference testing.md, do not prescribe your own approach
+6. **Code Anatomy**: Define file structure following CONTRIBUTING.md patterns
+7. **Testing Strategy**: Reference TESTING.md, do not prescribe your own approach
 8. **Consider Impact**: If files are affected, design for backward compatibility
 9. **Trace**: Link every design element to requirements
 
@@ -153,8 +152,8 @@ A structured overview of the document contents:
 - **Components**: N components designed (<list main component names>)
 - **Diagrams**: <list diagram types included: architecture, class, sequence, etc.>
 - **Interfaces**: N interfaces/contracts defined
-- **Testing approach**: <per steering/testing.md>
-- **Key patterns**: <architectural patterns from steering/conventions.md>
+- **Testing approach**: <per TESTING.md>
+- **Key patterns**: <architectural patterns from CONTRIBUTING.md>
 </summary>
 <document>
 \`\`\`markdown
@@ -204,7 +203,7 @@ classDiagram
 _Code anatomy defines the structural patterns for implementing this feature. This section ensures consistency across all implementations by explicitly documenting file structures, naming patterns, and organizational rules. AI agents MUST follow these patterns exactly._
 
 **Source of Truth:**
-- **If conventions.md exists**: Reference and follow the patterns defined in steering/conventions.md. Only add feature-specific extensions here.
+- **If CONTRIBUTING.md exists**: Reference and follow the patterns defined in CONTRIBUTING.md. Only add feature-specific extensions here.
 - **If no conventions.md exists**: Define optimal patterns for this feature based on the project's detected stack. Prioritize clean, maintainable, reusable, and testable code. Mark recommendations with \`<!-- REVIEW: -->\`.
 
 ### File Placement
@@ -279,9 +278,9 @@ sequenceDiagram
 
 <Add additional flows as needed>
 
-## Correctness Properties (OPTIONAL - Check Steering)
+## Correctness Properties (OPTIONAL - Check Guidelines)
 
-_Include this section ONLY if steering/testing.md mentions "property-based testing" or "property tests". If steering specifies a simpler testing approach (e.g., "integration tests only"), this section may be omitted or simplified to just list key invariants without formal property syntax._
+_Include this section ONLY if TESTING.md mentions "property-based testing" or "property tests". If TESTING.md specifies a simpler testing approach (e.g., "integration tests only"), this section may be omitted or simplified to just list key invariants without formal property syntax._
 
 _A correctness property is a formal statement about system behavior that should hold true across all valid executions._
 
@@ -291,7 +290,7 @@ _For any_ valid <input/state>, the <system/component> SHALL <expected behavior>.
 
 **Validates**: Requirements X.1, X.2
 
-<If steering mentions property-based testing, include 2-5 formal properties. Otherwise, list key business rules as simple invariants.>
+<If TESTING.md mentions property-based testing, include 2-5 formal properties. Otherwise, list key business rules as simple invariants.>
 
 ## Error Handling
 
@@ -312,26 +311,26 @@ _For any_ valid <input/state>, the <system/component> SHALL <expected behavior>.
 
 ## Testing Strategy
 
-**IMPORTANT**: Follow the testing strategy defined in \`steering/testing.md\`. Do not invent a testing approach—use what's specified in steering.
+**IMPORTANT**: Follow the testing strategy defined in \`TESTING.md\`. Do not invent a testing approach—use what's specified in guidelines.
 
-If \`testing.md\` exists, summarize:
+If \`TESTING.md\` exists, summarize:
 - Which test types are required (unit, integration, E2E, property-based)
-- What should NOT be tested (per steering guidance)
+- What should NOT be tested (per guideline guidance)
 - Test file location conventions
 
-If \`testing.md\` does not exist, propose a reasonable strategy and mark with \`<!-- REVIEW: -->\`.
+If \`TESTING.md\` does not exist, propose a reasonable strategy and mark with \`<!-- REVIEW: -->\`.
 
-### Test Categories (from steering)
+### Test Categories (from guidelines)
 
-<Summarize the testing approach from steering/testing.md:>
+<Summarize the testing approach from TESTING.md:>
 
-- **Primary test type**: <what steering recommends as main testing approach>
+- **Primary test type**: <what TESTING.md recommends as main testing approach>
 - **Secondary tests**: <additional test types if specified>
-- **Excluded**: <what steering says NOT to test>
+- **Excluded**: <what TESTING.md says NOT to test>
 
 ### Test Scenarios for This Feature
 
-<Based on steering's testing philosophy, list specific test scenarios:>
+<Based on TESTING.md's testing philosophy, list specific test scenarios:>
 
 - <Scenario 1>: <what to verify>
 - <Scenario 2>: <what to verify>
@@ -364,14 +363,14 @@ Start directly with the XML tags. No preamble.
 
 ## Important Rules
 
-1. **STEERING FIRST**: Read and follow steering documents (conventions.md, testing.md, tech.md) before designing
+1. **GUIDELINES FIRST**: Read and follow guideline documents (CONTRIBUTING.md, TESTING.md, AGENTS.md) before designing
 2. Every DES-X must link back to specific acceptance criteria numbers (e.g., "Requirements 1.3, 2.1")
 3. Use Mermaid diagrams for ALL visualizations - NO code samples
 4. **CRITICAL**: DO NOT include code samples (TypeScript/Code blocks) for interfaces or classes. Use Mermaid Class Diagrams ONLY.
 5. **CODE ANATOMY IS MANDATORY**: Must follow patterns from conventions.md, only add feature-specific extensions
-6. Code Anatomy must reference conventions.md from steering - do not invent conflicting patterns
-7. **TESTING STRATEGY**: Reference testing.md - do not prescribe your own testing philosophy
-8. Include Correctness Properties ONLY if steering mentions property-based testing
+6. Code Anatomy must reference CONTRIBUTING.md - do not invent conflicting patterns
+7. **TESTING STRATEGY**: Reference TESTING.md - do not prescribe your own testing philosophy
+8. Include Correctness Properties ONLY if TESTING.md mentions property-based testing
 9. Include Error Handling tables for each subsystem
 10. Consider error cases for every component
 11. If impact analysis shows affected files, explain migration strategy

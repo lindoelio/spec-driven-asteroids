@@ -7,6 +7,7 @@
 
 import * as vscode from 'vscode';
 import type { VsCodeInterfaceAdapter } from './VsCodeInterfaceAdapter';
+import { ResponseBuilder, Icons } from './utils/ResponseBuilder';
 
 interface ConversationState {
     specId: string | null;
@@ -80,7 +81,7 @@ export function registerChatParticipant(
             request: vscode.ChatRequest,
             context: vscode.ChatContext,
             stream: vscode.ChatResponseStream,
-            token: vscode.CancellationToken
+            _token: vscode.CancellationToken
         ) => {
             const command = request.command;
             const userMessage = request.prompt;
@@ -89,30 +90,13 @@ export function registerChatParticipant(
             // Reset result metadata
             lastResult = { command };
 
-            // Note: Steering initialization is now deferred to specific commands (design, tasks)
-            // or post-requirements phase to allow requirements to shape the steering.
+            // Note: Guidelines initialization is deferred to specific commands (design, tasks)
+            // or post-requirements phase to allow requirements to shape the guidelines.
 
             try {
                 switch (command) {
                     case 'plan':
                         lastResult = await handlePlanCommand(stream, userMessage, interfaceAdapter, state);
-                        break;
-
-                    case 'requirements':
-                        lastResult = await handleRequirementsCommand(stream, userMessage, interfaceAdapter, state);
-                        break;
-
-                    case 'design':
-                        lastResult = await handleDesignCommand(stream, userMessage, interfaceAdapter, state);
-                        break;
-
-                    case 'tasks':
-                        lastResult = await handleTasksCommand(stream, userMessage, interfaceAdapter, state);
-                        break;
-
-                    case 'reverse':
-                        await handleReverseCommand(stream, userMessage, interfaceAdapter);
-                        lastResult = { command: 'reverse', success: true };
                         break;
 
                     case 'configure':
@@ -141,8 +125,8 @@ export function registerChatParticipant(
     participant.followupProvider = {
         provideFollowups(
             result: vscode.ChatResult,
-            context: vscode.ChatContext,
-            token: vscode.CancellationToken
+            _context: vscode.ChatContext,
+            _token: vscode.CancellationToken
         ): vscode.ProviderResult<vscode.ChatFollowup[]> {
             const metadata = result.metadata as SpecChatResultMetadata | undefined;
             if (!metadata || metadata.success === false) {
@@ -170,9 +154,8 @@ export function registerChatParticipant(
                     // After requirements: show revise instructions, approve button
                     followups.push(
                         {
-                            prompt: '',
-                            label: 'Approve & Generate Design',
-                            command: 'design',
+                            prompt: 'Approved. Proceed with the technical design.',
+                            label: 'Continue to Design',
                         }
                     );
                     break;
@@ -181,9 +164,8 @@ export function registerChatParticipant(
                     // After design: show revise instructions, approve button
                     followups.push(
                         {
-                            prompt: '',
-                            label: 'Approve & Generate Tasks',
-                            command: 'tasks',
+                            prompt: 'Approved. Generate implementation tasks.',
+                            label: 'Continue to Tasks',
                         }
                     );
                     break;
@@ -202,14 +184,12 @@ export function registerChatParticipant(
                     // Spec complete, offer to view or start new
                     followups.push(
                         {
-                            prompt: '',
+                            prompt: 'Show the current spec status.',
                             label: 'View Spec Status',
-                            command: 'status',
                         },
                         {
-                            prompt: '',
+                            prompt: 'Plan a new feature.',
                             label: 'Plan New Feature',
-                            command: 'plan',
                         }
                     );
                     break;
@@ -222,58 +202,6 @@ export function registerChatParticipant(
     participant.iconPath = new vscode.ThemeIcon('notebook');
 
     extensionContext.subscriptions.push(participant);
-}
-
-async function ensureSteeringInitialized(
-    stream: vscode.ChatResponseStream,
-    adapter: VsCodeInterfaceAdapter,
-    requirements?: string
-): Promise<void> {
-    const steeringPaths = {
-        product: '.spec/steering/product.md',
-        tech: '.spec/steering/tech.md',
-        architecture: '.spec/steering/architecture.md',
-        conventions: '.spec/steering/conventions.md',
-        testing: '.spec/steering/testing.md',
-    } as const;
-
-    const missing: (keyof typeof steeringPaths)[] = [];
-
-    for (const key of Object.keys(steeringPaths) as Array<keyof typeof steeringPaths>) {
-        if (!await adapter.fileSystem.exists(steeringPaths[key])) {
-            missing.push(key);
-        }
-    }
-
-    if (missing.length === 0) {
-        return;
-    }
-
-    if (missing.length === 5) {
-        stream.markdown(`**Project steering**: initializing steering documents...\n\n`);
-    } else {
-        stream.markdown(`**Project steering**: updating missing steering documents...\n\n`);
-    }
-
-    if (missing.includes('product')) {
-        // Product steering might need user intent which is now passed via requirements content usually
-        await adapter.generateProductSteering(requirements);
-    }
-    if (missing.includes('tech')) {
-        await adapter.generateTechSteering(requirements);
-    }
-    if (missing.includes('architecture')) {
-        await adapter.generateArchitectureSteering(requirements);
-    }
-    if (missing.includes('conventions')) {
-        await adapter.generateConventionsSteering(requirements);
-    }
-    if (missing.includes('testing')) {
-        await adapter.generateTestingSteering(requirements);
-    }
-
-    const touched = missing.map(doc => `${doc}.md`);
-    stream.markdown(`**Project steering generated/touched**: ${touched.join(', ')}\n\n`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -295,18 +223,37 @@ Please describe the feature you want to build. I'll help you create:
 2. **Design** (architecture + Mermaid diagrams)
 3. **Tasks** (atomic implementation steps)
 
-**Example**: \`@spec /plan User authentication with OAuth\`
+**Example**: "User authentication with OAuth"
 
 ---
 
 **Pro tips:**
-- Include a Jira/Linear issue ID if available: \`@spec /plan PROJ-123 OAuth login\`
+- Include a Jira/Linear issue ID if available (e.g., "PROJ-123 OAuth login")
 - Be specific about users and behaviors for better requirements
 `);
         return { command: 'plan', success: true };
     }
 
     stream.markdown(`# 📋 Planning: ${userMessage}\n\n`);
+
+    // Check if guidelines are configured, auto-configure if not
+    const guidelines = await adapter.getGuidelines();
+    const hasGuidelines = Object.values(guidelines).some(Boolean);
+
+    if (!hasGuidelines) {
+        stream.markdown(`${Icons.wrench} **Setting up project guidelines first...**\n\n`);
+        stream.progress('Configuring guidelines...');
+
+        try {
+            await adapter.initializeGuidelinesWithProgress((guideline) => {
+                stream.markdown(`  ${Icons.success} ${guideline.fileName}\n`);
+            });
+            stream.markdown(`\n${Icons.success} Guidelines configured. Continuing with planning...\n\n`);
+        } catch (error) {
+            stream.markdown(`${Icons.warning} Could not auto-configure guidelines. Continuing anyway...\n\n`);
+        }
+    }
+
     stream.progress('Initializing spec...');
 
     // Check for issue ID in the message
@@ -375,10 +322,10 @@ Please describe the feature you want to build. I'll help you create:
         state.context.technologies = planningContext.technologies;
     }
 
-    // Show steering status
-    const steering = await adapter.getSteering();
-    if (!steering.product && !steering.tech) {
-        stream.markdown(`**Note**: No steering documents found. Run \`SpecDriven: Initialize Steering Documents\` for better results.\n\n`);
+    // Show guidelines status
+    const guidelines = await adapter.getGuidelines();
+    if (!guidelines.agents && !guidelines.architecture) {
+        stream.markdown(`**Note**: No guideline documents found. Run \`SpecDriven: Initialize Guideline Documents\` for better results.\n\n`);
     }
 
     stream.markdown(`---\n\n`);
@@ -402,7 +349,7 @@ async function handleRequirementsCommand(
     state: ConversationState
 ): Promise<SpecChatResultMetadata> {
     if (!state.specId) {
-        stream.markdown(`No active spec. Use \`@spec /plan <feature>\` to start planning first.\n`);
+        stream.markdown(`No active spec. Describe the feature you'd like to plan to get started.\n`);
         return { command: 'requirements', success: false };
     }
 
@@ -431,7 +378,7 @@ async function handleRequirementsCommand(
         state.phase = 'requirements';
 
         stream.markdown(`# 📝 Requirements Generated\n\n`);
-        stream.markdown(`Saved to: \`.spec/specs/${state.specId}/requirements.md\`\n\n`);
+        stream.markdown(`Saved to: \`.spec/changes/${state.specId}/requirements.md\`\n\n`);
         stream.markdown(`---\n\n`);
 
         if (result.summary) {
@@ -443,7 +390,7 @@ async function handleRequirementsCommand(
         }
 
         stream.markdown(`\n\n---\n\n`);
-        stream.markdown(`Review the requirements. To revise, type: \`@spec /requirements <your changes>\`\n`);
+        stream.markdown(`Review the requirements. Share your feedback to refine them.\n`);
 
         return {
             command: 'requirements',
@@ -458,228 +405,92 @@ async function handleRequirementsCommand(
     }
 }
 
-async function handleDesignCommand(
-    stream: vscode.ChatResponseStream,
-    userMessage: string,
-    adapter: VsCodeInterfaceAdapter,
-    state: ConversationState
-): Promise<SpecChatResultMetadata> {
-    if (!state.specId) {
-        stream.markdown(`No active spec. Use \`@spec /plan <feature>\` to start planning first.\n`);
-        return { command: 'design', success: false };
-    }
-
-    // Check if requirements exist
-    const requirements = await adapter.getRequirements(state.specId);
-    if (!requirements) {
-        stream.markdown(`No requirements found. Use \`@spec /requirements\` first.\n`);
-        return { command: 'design', specId: state.specId, success: false };
-    }
-
-    // Ensure project steering exists before design starts
-    await ensureSteeringInitialized(stream, adapter, requirements);
-
-    stream.markdown(`# 🏗️ Generating Design\n\n`);
-    stream.progress('Analyzing requirements and generating architecture...');
-
-    try {
-        // Generate design via adapter
-        const result = await adapter.generateDesign(
-            state.specId,
-            requirements + (userMessage ? `\n\nAdditional context: ${userMessage}` : ''),
-            {
-                technologies: state.context.technologies,
-            }
-        );
-
-        state.phase = 'design';
-
-        stream.markdown(`# 🏗️ Design Generated\n\n`);
-        stream.markdown(`Saved to: \`.spec/specs/${state.specId}/design.md\`\n\n`);
-
-        if (result.impactAnalysis) {
-            stream.markdown(`### Impact Analysis\n\n`);
-            stream.markdown(`- **Risk Level**: ${result.impactAnalysis.riskLevel ?? 'unknown'}\n`);
-
-            const affectedFiles = result.impactAnalysis.affectedFiles ?? [];
-            stream.markdown(`- **Files Affected**: ${affectedFiles.length}\n\n`);
-
-            if (affectedFiles.length > 0) {
-                stream.markdown(`**Potentially affected files:**\n`);
-                for (const file of affectedFiles.slice(0, 5)) {
-                    stream.markdown(`- \`${file}\`\n`);
-                }
-                if (affectedFiles.length > 5) {
-                    stream.markdown(`- *... and ${affectedFiles.length - 5} more*\n`);
-                }
-                stream.markdown(`\n`);
-            }
-        }
-
-        stream.markdown(`---\n\n`);
-
-        if (result.summary) {
-            stream.markdown(`### Document Overview\n\n`);
-            stream.markdown(result.summary);
-        } else {
-            stream.markdown(`### Preview\n\n`);
-            stream.markdown(result.content.substring(0, 1500) + (result.content.length > 1500 ? '\n\n*... (truncated, see full file)*' : ''));
-        }
-
-        stream.markdown(`\n\n---\n\n`);
-        stream.markdown(`Review the design. To revise, type: \`@spec /design <your changes>\`\n`);
-
-        return {
-            command: 'design',
-            phase: 'design',
-            specId: state.specId,
-            success: true,
-        };
-
-    } catch (error) {
-        stream.markdown(`**Error:** Failed to generate design: ${error instanceof Error ? error.message : String(error)}\n`);
-        return { command: 'design', specId: state.specId, success: false };
-    }
-}
-
-async function handleTasksCommand(
-    stream: vscode.ChatResponseStream,
-    userMessage: string,
-    adapter: VsCodeInterfaceAdapter,
-    state: ConversationState
-): Promise<SpecChatResultMetadata> {
-    if (!state.specId) {
-        stream.markdown(`No active spec. Use \`@spec /plan <feature>\` to start planning first.\n`);
-        return { command: 'tasks', success: false };
-    }
-
-    // Check if design exists
-    const design = await adapter.getDesign(state.specId);
-    if (!design) {
-        stream.markdown(`No design found. Use \`@spec /design\` first.\n`);
-        return { command: 'tasks', specId: state.specId, success: false };
-    }
-
-    stream.markdown(`# 📋 Generating Tasks\n\n`);
-    stream.progress('Decomposing design into atomic tasks...');
-
-    const useTdd = userMessage.toLowerCase().includes('tdd');
-
-    try {
-        // Generate tasks via adapter
-        const result = await adapter.generateTasks(
-            state.specId,
-            design,
-            { suggestTdd: useTdd }
-        );
-
-        state.phase = 'tasks';
-
-        stream.markdown(`# ✅ Tasks Generated\n\n`);
-        stream.markdown(`Saved to: \`.spec/specs/${state.specId}/tasks.md\`\n\n`);
-        stream.markdown(`---\n\n`);
-
-        if (result.summary) {
-            stream.markdown(`### Implementation Plan Overview\n\n`);
-            stream.markdown(result.summary);
-        } else {
-            stream.markdown(`### Preview\n\n`);
-            stream.markdown(result.content.substring(0, 2000) + (result.content.length > 2000 ? '\n\n*... (truncated, see full file)*' : ''));
-        }
-
-        stream.markdown(`\n\n---\n\n`);
-        stream.markdown(`**Spec complete.** Review the tasks. To revise, type: \`@spec /tasks <your changes>\`\n`);
-
-        return {
-            command: 'tasks',
-            phase: 'tasks',
-            specId: state.specId,
-            success: true,
-        };
-
-    } catch (error) {
-        stream.markdown(`**Error:** Failed to generate tasks: ${error instanceof Error ? error.message : String(error)}\n`);
-        return { command: 'tasks', specId: state.specId, success: false };
-    }
-}
-
-
-
-/**
- * Implement a specific task.
- */
-
-
-async function handleReverseCommand(
-    stream: vscode.ChatResponseStream,
-    userMessage: string,
-    adapter: VsCodeInterfaceAdapter
-): Promise<void> {
-    stream.markdown(`# Reverse Engineering\n\n`);
-    stream.markdown(`This feature analyzes existing code and generates specs.\n\n`);
-    stream.markdown(`**Usage**:\n`);
-    stream.markdown(`1. Select a file or folder in the Explorer\n`);
-    stream.markdown(`2. Run \`SpecDriven: Reverse Engineer Spec\` from the Command Palette\n`);
-    stream.markdown(`3. Or: \`@spec /reverse path/to/code\`\n\n`);
-    stream.markdown(`*This feature requires the engine adapter to be configured.*\n`);
-}
-
 async function handleConfigureCommand(
     stream: vscode.ChatResponseStream,
-    userMessage: string,
+    _userMessage: string,
     adapter: VsCodeInterfaceAdapter
 ): Promise<SpecChatResultMetadata> {
-    stream.markdown(`# Configure Steering\n\n`);
-    stream.progress('Analyzing project...');
+    const rb = new ResponseBuilder(stream);
 
-    // Check existing steering
-    const existingSteering = await adapter.getSteering();
-    const hasExisting = existingSteering.product || existingSteering.tech ||
-        existingSteering.architecture || existingSteering.conventions || existingSteering.testing;
+    // 1. Opening - collaborative voice
+    rb.starting('set up guideline documents for your project');
+
+    // 2. Analysis with real-time feedback
+    rb.doing('Analyzing project structure...');
+    const analysis = await adapter.analyzeProject();
+
+    // Build natural description of the stack
+    let stackDesc = rb.describeStack(analysis);
+    if (analysis.testFrameworks.length) {
+        stackDesc += ` with ${rb.listify(analysis.testFrameworks)} for testing`;
+    }
+    if (analysis.linters.length) {
+        stackDesc += ` and ${rb.listify(analysis.linters)} for code quality`;
+    }
+    rb.found(stackDesc);
+
+    // 3. Check existing state and inform user
+    const existing = await adapter.getGuidelines();
+    const hasExisting = Object.values(existing).some(Boolean);
 
     if (hasExisting) {
-        stream.markdown(`**Updating** existing steering documents...\n\n`);
-    } else {
-        stream.markdown(`**Initializing** steering for this project...\n\n`);
+        stream.markdown(`${Icons.wrench} We'll update the managed sections while keeping your customizations intact.\n\n`);
     }
 
     try {
-        // Generate all steering documents
-        const results = await adapter.generateAllSteering();
+        // 4. Generate with real-time streaming feedback
+        rb.section(`${Icons.document} Guidelines`);
 
-        // Show summaries
-        stream.markdown(`## Generated Documents\n\n`);
+        const result = await adapter.initializeGuidelinesWithProgress((guideline) => {
+            if (guideline.wasCreated) {
+                rb.created(guideline.fileName);
+            } else {
+                rb.updated(guideline.fileName);
+            }
+        });
 
-        stream.markdown(`### Product Vision\n`);
-        stream.markdown(`${results.product.summary}\n\n`);
+        // 5. Copilot integration files
+        rb.section(`${Icons.robot} Copilot Integration`);
+        for (const file of result.copilotFiles) {
+            if (file.wasCreated) {
+                rb.created(file.path);
+            } else {
+                rb.updated(file.path);
+            }
+        }
 
-        stream.markdown(`### Technology Stack\n`);
-        stream.markdown(`${results.tech.summary}\n\n`);
+        // 6. Summary
+        stream.markdown(`\n`);
 
-        stream.markdown(`### Architecture\n`);
-        stream.markdown(`${results.architecture.summary}\n\n`);
+        if (result.totalCreated > 0 && result.totalUpdated > 0) {
+            rb.celebrate(`Created ${result.totalCreated} new ${rb.pluralize(result.totalCreated, 'file')} and updated ${result.totalUpdated}!`);
+        } else if (result.totalCreated > 0) {
+            rb.celebrate(`Created ${result.totalCreated} guideline ${rb.pluralize(result.totalCreated, 'file')}!`);
+        } else {
+            stream.markdown(`${Icons.updated} Updated ${result.totalUpdated} ${rb.pluralize(result.totalUpdated, 'file')}.\n`);
+        }
 
-        stream.markdown(`### Coding Conventions\n`);
-        stream.markdown(`${results.conventions.summary}\n\n`);
+        // 7. Review notice if there are placeholders
+        if (result.totalPlaceholders > 0) {
+            stream.markdown(`\n`);
+            rb.warning(`${result.totalPlaceholders} sections need your review — look for \`<!-- REVIEW: -->\` comments.`);
+        }
 
-        stream.markdown(`### Testing Strategy\n`);
-        stream.markdown(`${results.testing.summary}\n\n`);
-
-        stream.markdown(`---\n\n`);
-        stream.markdown(`**Steering files created in:** \`.spec/steering/\`\n\n`);
-        stream.markdown(`- [product.md](.spec/steering/product.md)\n`);
-        stream.markdown(`- [tech.md](.spec/steering/tech.md)\n`);
-        stream.markdown(`- [architecture.md](.spec/steering/architecture.md)\n`);
-        stream.markdown(`- [conventions.md](.spec/steering/conventions.md)\n`);
-        stream.markdown(`- [testing.md](.spec/steering/testing.md)\n\n`);
-        stream.markdown(`Review and customize these documents to match your project's specific needs.\n`);
+        // 8. Contextual next steps
+        rb.nextSteps([
+            'Review the generated guidelines and customize as needed',
+            'Describe the feature you\'d like to build to start planning',
+            'Ask about your project\'s current state anytime',
+        ]);
 
         return {
             command: 'configure',
             success: true,
         };
     } catch (error) {
-        stream.markdown(`**Error**: ${error instanceof Error ? error.message : String(error)}\n`);
+        stream.markdown(`\n`);
+        rb.error(`Something went wrong: ${error instanceof Error ? error.message : String(error)}`);
+        stream.markdown(`\nTry running the command again, or check if you have write permissions to the workspace.\n`);
         return {
             command: 'configure',
             success: false,
@@ -692,48 +503,97 @@ async function handleStatusCommand(
     adapter: VsCodeInterfaceAdapter,
     state: ConversationState
 ): Promise<SpecChatResultMetadata> {
-    stream.markdown(`# Status\n\n`);
+    const rb = new ResponseBuilder(stream);
 
-    // Steering status
-    const steering = await adapter.getSteering();
-    stream.markdown(`## Steering Documents\n\n`);
-    stream.markdown(`- Product: ${steering.product ? 'Present' : 'Missing'}\n`);
-    stream.markdown(`- Tech: ${steering.tech ? 'Present' : 'Missing'}\n`);
-    stream.markdown(`- Architecture: ${steering.architecture ? 'Present' : 'Missing'}\n`);
-    stream.markdown(`- Conventions: ${steering.conventions ? 'Present' : 'Missing'}\n`);
-    stream.markdown(`- Testing: ${steering.testing ? 'Present' : 'Missing'}\n\n`);
+    stream.markdown(`# ${Icons.chart} Project Status\n\n`);
 
-    // Specs status
+    // Guidelines status
+    const guidelines = await adapter.getGuidelines();
+    const guidelineCount = Object.values(guidelines).filter(Boolean).length;
     const specs = await adapter.getSpecs();
-    stream.markdown(`## Specs (${specs.length})\n\n`);
 
+    // Empty state - fresh project
+    if (guidelineCount === 0 && specs.length === 0) {
+        stream.markdown(`Looks like we're starting fresh! ${Icons.seedling}\n\n`);
+        stream.markdown(`Let's get set up:\n`);
+        stream.markdown(`1. Ask me to configure your project guidelines\n`);
+        stream.markdown(`2. Then describe a feature you'd like to plan\n`);
+        return { command: 'status', success: true };
+    }
+
+    // Guidelines section
+    if (guidelineCount === 6) {
+        stream.markdown(`${Icons.success} **Guidelines:** All 6 documents ready\n\n`);
+    } else if (guidelineCount > 0) {
+        stream.markdown(`${Icons.warning} **Guidelines:** ${guidelineCount}/6 configured\n`);
+        const missingDocs = Object.entries(guidelines)
+            .filter(([_, v]) => !v)
+            .map(([k]) => k);
+        stream.markdown(`   Missing: ${rb.listify(missingDocs)}\n\n`);
+    } else {
+        stream.markdown(`${Icons.error} **Guidelines:** Not configured yet\n`);
+        stream.markdown(`   Ask me to set up guidelines for your project\n\n`);
+    }
+
+    // Specs section
     let nextTaskInfo: { id: string; title: string; phase: number } | undefined;
     let activeSpecId: string | undefined;
 
     if (specs.length === 0) {
-        stream.markdown(`*No specs yet. Use \`@spec /plan\` to create one.*\n`);
+        stream.markdown(`${Icons.clipboard} **Specs:** None yet\n`);
+        stream.markdown(`   Describe a feature to create one\n`);
     } else {
-        for (const spec of specs) {
-            const progress = spec.taskCount > 0
-                ? `${spec.completedTaskCount}/${spec.taskCount} tasks`
-                : 'No tasks';
-            stream.markdown(`- **${spec.featureName}** (\`${spec.id}\`): ${progress}\n`);
+        const completed = specs.filter(s => s.taskCount > 0 && s.completedTaskCount === s.taskCount);
+        const inProgress = specs.filter(s => s.taskCount === 0 || s.completedTaskCount < s.taskCount);
 
-            // Find the next pending task for the first spec with pending tasks
-            if (!nextTaskInfo && spec.taskCount > spec.completedTaskCount) {
-                activeSpecId = spec.id;
+        stream.markdown(`${Icons.clipboard} **Specs:** ${specs.length} total`);
+        if (completed.length) stream.markdown(` (${completed.length} complete)`);
+        stream.markdown(`\n\n`);
+
+        // In-progress specs with details
+        if (inProgress.length > 0) {
+            stream.markdown(`**${Icons.construction} In Progress:**\n\n`);
+
+            for (const spec of inProgress.slice(0, 3)) {
                 const tasks = await adapter.getTasks(spec.id);
                 const pendingTask = tasks.find(t => t.status === 'pending' || t.status === 'in-progress');
-                if (pendingTask) {
+
+                if (spec.taskCount === 0) {
+                    stream.markdown(`- \`${spec.id}\` — ${spec.featureName} *(planning)*\n`);
+                } else {
+                    const progress = `${spec.completedTaskCount}/${spec.taskCount} tasks`;
+                    stream.markdown(`- \`${spec.id}\` — ${spec.featureName} (${progress})\n`);
+                }
+
+                // Capture first pending task for followup buttons
+                if (!nextTaskInfo && pendingTask) {
+                    activeSpecId = spec.id;
                     const phase = parseInt(pendingTask.id.split('.')[0]) || 1;
-                    nextTaskInfo = {
-                        id: pendingTask.id,
-                        title: pendingTask.title,
-                        phase,
-                    };
+                    nextTaskInfo = { id: pendingTask.id, title: pendingTask.title, phase };
                 }
             }
+
+            if (inProgress.length > 3) {
+                stream.markdown(`- *...and ${inProgress.length - 3} more*\n`);
+            }
         }
+
+        // Completed specs (brief)
+        if (completed.length > 0) {
+            stream.markdown(`\n**${Icons.success} Completed:** ${completed.length} ${rb.pluralize(completed.length, 'spec')}\n`);
+        }
+    }
+
+    // Current session context
+    if (state.specId) {
+        stream.markdown(`\n---\n\n`);
+        stream.markdown(`${Icons.target} **Current session:** \`${state.specId}\` (${state.phase})\n`);
+    }
+
+    // Contextual next steps based on state
+    if (nextTaskInfo) {
+        stream.markdown(`\n---\n\n`);
+        stream.markdown(`${Icons.lightbulb} **Continue working:** Task ${nextTaskInfo.id} — ${nextTaskInfo.title}\n`);
     }
 
     return {
@@ -780,14 +640,32 @@ async function handleDefaultCommand(
     adapter: VsCodeInterfaceAdapter,
     state: ConversationState
 ): Promise<void> {
+    const rb = new ResponseBuilder(stream);
+
     // Try to recover context if we received "generate" but have no spec
     if (!state.specId && (userMessage.toLowerCase() === 'generate' || userMessage.toLowerCase() === 'proceed')) {
         const recovered = await attemptContextRecovery(adapter, state);
         if (recovered) {
-            stream.markdown(`**Recovered session for:** \`${state.specId}\`\n\n`);
+            stream.markdown(`${Icons.success} **Recovered session for:** \`${state.specId}\`\n\n`);
             await handleRequirementsCommand(stream, '', adapter, state);
             return;
         }
+    }
+
+    // Check for refinement patterns (natural language commands)
+    const refinementPattern = /\b(update|change|modify|refine|revise|add to|edit)\b.*\b(requirements?|design|tasks?)\b/i;
+    const refinementMatch = userMessage.match(refinementPattern);
+
+    if (refinementMatch && state.specId) {
+        const docType = refinementMatch[2].toLowerCase();
+
+        if (docType.startsWith('requirement')) {
+            stream.markdown(`${Icons.updated} **Refinement detected.** Updating requirements...\n\n`);
+            await handleRequirementsCommand(stream, userMessage, adapter, state);
+            return;
+        }
+        // For design and tasks, inform user these are part of the planning flow
+        stream.markdown(`${Icons.lightbulb} To refine ${docType}, use the approval flow during planning. The design and tasks are generated as part of the planning pipeline.\n\n`);
     }
 
     // If there's an active spec in gathering phase, treat input as additional context
@@ -802,80 +680,55 @@ async function handleDefaultCommand(
         state.context.userInputs.push(userMessage);
 
         // Re-analyze request with added context to see if we can auto-proceed
-        // Combine all inputs to see if it makes a clear request now
         const fullContext = state.context.userInputs.join('\n\n');
 
         stream.progress('Analyzing updated context...');
         const analysis = await adapter.analyzeRequest(fullContext);
 
         if (analysis.isClear) {
-            stream.markdown(`**Context added.** The request is now clear. Generating requirements...\n\n`);
+            stream.markdown(`${Icons.success} **Context added.** The request is now clear. Generating requirements...\n\n`);
             await handleRequirementsCommand(stream, '', adapter, state);
         } else {
-            stream.markdown(`**Context added.**\n\n`);
-            // Only ask recovering questions if we haven't asked too many times,
-            // but for now let's just show the prompt to continue or generate.
-            stream.markdown(`I've updated the context. You can providing more details or just say "generate" to start.\n`);
+            stream.markdown(`${Icons.success} **Context added.**\n\n`);
+            stream.markdown(`We've updated the context. You can provide more details or just say "generate" to proceed.\n`);
         }
         return;
     }
 
-    // Default help response
-    stream.markdown(`# SpecDriven Assistant
+    // Default help response - contextual and friendly
+    stream.markdown(`# ${Icons.wave} Hey there!\n\n`);
+    stream.markdown(`We help you build software with discipline: **Requirements → Design → Tasks → Code**.\n\n`);
 
-I help you build software with discipline: **Requirements → Design → Tasks → Code**.
+    // Check project state for contextual suggestions
+    const guidelines = await adapter.getGuidelines();
+    const hasGuidelines = Object.values(guidelines).some(Boolean);
+    const specs = await adapter.getSpecs();
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| \`/plan <feature>\` | Start planning a new feature |
-| \`/requirements\` | Generate requirements (EARS syntax) |
-| \`/design\` | Generate architecture & diagrams |
-| \`/tasks\` | Generate implementation tasks |
-| \`/reverse\` | Generate specs from existing code |
-| \`/status\` | Show current progress |
-
-## Implementation (Use Agent Mode)
-
-To implement tasks, use **Copilot Agent mode** directly:
-
-1. Open your spec's \`tasks.md\` file as context
-2. Ask Copilot to implement specific tasks
-
-**Example prompts:**
-- "Implement task 1.1 from the spec"
-- "Implement all pending tasks in phase 1"
-- "Read .spec/specs/my-feature/tasks.md and implement task 2.1"
-
-Copilot reads \`.github/copilot-instructions.md\` automatically to understand the workflow.
-
-## Quick Start
-
-1. **Initialize steering**: Run \`SpecDriven: Initialize Steering Documents\`
-2. **Plan a feature**: \`@spec /plan User login with OAuth\`
-3. **Generate requirements**: \`@spec /requirements\`
-4. **Generate design**: \`@spec /design\`
-5. **Generate tasks**: \`@spec /tasks\`
-6. **Implement**: Use Copilot Agent mode with tasks.md as context
-
-## Pro Tips
-
-- Include issue IDs: \`@spec /plan PROJ-123 OAuth login\`
-- Add "tdd" to tasks command for test-first approach: \`@spec /tasks tdd\`
-- Check steering docs for project-specific guidance
-
----
-
-`);
-
-    // Show current state if active
-    if (state.specId) {
-        stream.markdown(`## Current Session\n\n`);
-        stream.markdown(`- **Spec**: \`${state.specId}\`\n`);
-        stream.markdown(`- **Feature**: ${state.featureName}\n`);
-        stream.markdown(`- **Phase**: ${state.phase}\n\n`);
+    if (!hasGuidelines) {
+        stream.markdown(`${Icons.rocket} **Get started:** Ask me to configure your project guidelines.\n\n`);
+    } else if (specs.length === 0) {
+        stream.markdown(`${Icons.rocket} **Ready to plan!** Describe a feature to start your first spec.\n\n`);
+    } else {
+        stream.markdown(`${Icons.clipboard} You have ${specs.length} ${rb.pluralize(specs.length, 'spec')}. Ask me about the current status to see progress.\n\n`);
     }
 
-    stream.markdown(`*How can I help you today?*\n`);
+    // Commands table
+    stream.markdown(`## Commands\n\n`);
+    stream.markdown(`| Command | What it does |\n`);
+    stream.markdown(`|---------|-------------|\n`);
+    stream.markdown(`| \`/plan <feature>\` | ${Icons.document} Start planning a new feature |\n`);
+    stream.markdown(`| \`/configure\` | ${Icons.wrench} Set up or refresh guideline docs |\n`);
+    stream.markdown(`| \`/status\` | ${Icons.chart} Check project and spec progress |\n\n`);
+
+    // Current session info
+    if (state.specId) {
+        stream.markdown(`---\n\n`);
+        stream.markdown(`${Icons.target} **Current session:** \`${state.specId}\` — ${state.featureName} (${state.phase})\n\n`);
+
+        if (state.phase === 'gathering') {
+            stream.markdown(`${Icons.lightbulb} Provide more details about your feature, or say "generate" to proceed.\n`);
+        }
+    }
+
+    stream.markdown(`\n*What would you like to do?* ${Icons.thinking}\n`);
 }

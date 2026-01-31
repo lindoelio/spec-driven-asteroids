@@ -12,6 +12,15 @@ import type {
     Checkpoint,
     PromptStrategy,
 } from '@spec-driven/core';
+import {
+    type FileTree,
+    type GuidelineType,
+    type RepositoryInsights,
+    RepositoryAnalysisStrategy,
+    RepositoryInsightsStrategy,
+    parseRepositoryInsights,
+    GuidelinesStrategy,
+} from '@spec-driven/core';
 import { McpClient } from './McpClient.js';
 import * as vscode from 'vscode';
 
@@ -171,6 +180,112 @@ export class CopilotEngineAdapter implements IEnginePort {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // AI-Driven Repository Analysis
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Ask the AI to select which files are relevant for analysis.
+     */
+    async selectRelevantFiles(fileTree: FileTree): Promise<string[]> {
+        const strategy = new RepositoryAnalysisStrategy({ fileTree });
+        const response = await this.prompt(strategy, {});
+
+        // Parse the response to extract file paths
+        const paths: string[] = [];
+        const lines = response.split('\n');
+        for (const line of lines) {
+            const trimmed = line.trim();
+            // Look for paths in various formats: bullet points, numbered lists, or plain paths
+            const match = trimmed.match(/^[-*\d.)\s]*(.+\.\w+)$/);
+            if (match && match[1]) {
+                const path = match[1].trim();
+                // Validate it looks like a file path
+                if (path.includes('/') || path.includes('.')) {
+                    paths.push(path);
+                }
+            }
+        }
+
+        // If no paths parsed, try to find any path-like strings
+        if (paths.length === 0) {
+            const pathRegex = /[\w-]+(?:\/[\w.-]+)+\.\w+/g;
+            const matches = response.match(pathRegex);
+            if (matches) {
+                paths.push(...matches);
+            }
+        }
+
+        return paths;
+    }
+
+    /**
+     * Ask the AI to analyze repository contents and produce insights.
+     */
+    async analyzeRepository(
+        fileTree: FileTree,
+        contents: Map<string, string>
+    ): Promise<RepositoryInsights> {
+        const strategy = new RepositoryInsightsStrategy({ fileTree, fileContents: contents });
+        const response = await this.prompt(strategy, {});
+
+        // Parse the JSON response
+        return parseRepositoryInsights(response);
+    }
+
+    /**
+     * Ask the AI to synthesize a specific guideline document.
+     */
+    async synthesizeGuideline(
+        type: GuidelineType,
+        insights: RepositoryInsights
+    ): Promise<string> {
+        // Convert insights to ProjectAnalysisContext format
+        const projectAnalysis = {
+            languages: insights.techStack.languages,
+            frameworks: insights.techStack.frameworks,
+            dependencies: [] as Array<{ name: string; version: string; purpose?: string }>,
+            devDependencies: [] as Array<{ name: string; version: string; purpose?: string }>,
+            buildTools: insights.techStack.tools.filter(t =>
+                ['webpack', 'vite', 'rollup', 'esbuild', 'parcel', 'tsc', 'babel'].some(b => t.toLowerCase().includes(b))
+            ),
+            testFrameworks: insights.techStack.tools.filter(t =>
+                ['jest', 'vitest', 'mocha', 'jasmine', 'ava', 'tap', 'playwright', 'cypress'].some(b => t.toLowerCase().includes(b))
+            ),
+            linters: insights.techStack.tools.filter(t =>
+                ['eslint', 'prettier', 'biome', 'stylelint', 'tslint'].some(b => t.toLowerCase().includes(b))
+            ),
+            packageManager: insights.techStack.metadata.find(m => m.key === 'packageManager')?.value ?? null,
+            projectStructure: insights.structureSummary,
+        };
+
+        const strategy = new GuidelinesStrategy({
+            guidelineType: type,
+            projectAnalysis,
+            repositoryInsights: insights,
+        });
+
+        const response = await this.prompt(strategy, {});
+
+        // Extract the document content from XML response
+        const docMatch = response.match(/<document>\s*```markdown\s*([\s\S]*?)\s*```\s*<\/document>/);
+        if (docMatch && docMatch[1]) {
+            return docMatch[1].trim();
+        }
+
+        // Fallback: try to find markdown content directly
+        const mdMatch = response.match(/```markdown\s*([\s\S]*?)\s*```/);
+        if (mdMatch && mdMatch[1]) {
+            return mdMatch[1].trim();
+        }
+
+        // Last resort: return the response as-is (strip XML tags if present)
+        return response
+            .replace(/<summary>[\s\S]*?<\/summary>/g, '')
+            .replace(/<\/?document>/g, '')
+            .trim();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Prompt Building
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -184,21 +299,32 @@ export class CopilotEngineAdapter implements IEnginePort {
         parts.push(strategy.systemPrompt);
         parts.push('\n---\n');
 
-        // Steering context
-        if (context.steering) {
-            if (context.steering.product) {
-                parts.push('# Product Context\n');
-                parts.push(context.steering.product);
+        // Guidelines context (new)
+        if (context.guidelines) {
+            parts.push('# Guidelines (Root Documents)\n');
+            if (context.guidelines.agents) {
+                parts.push('## AGENTS.md\n');
+                parts.push(context.guidelines.agents);
                 parts.push('\n');
             }
-            if (context.steering.tech) {
-                parts.push('# Tech Stack\n');
-                parts.push(context.steering.tech);
+            if (context.guidelines.architecture) {
+                parts.push('## ARCHITECTURE.md\n');
+                parts.push(context.guidelines.architecture);
                 parts.push('\n');
             }
-            if (context.steering.conventions) {
-                parts.push('# Conventions\n');
-                parts.push(context.steering.conventions);
+            if (context.guidelines.contributing) {
+                parts.push('## CONTRIBUTING.md\n');
+                parts.push(context.guidelines.contributing);
+                parts.push('\n');
+            }
+            if (context.guidelines.testing) {
+                parts.push('## TESTING.md\n');
+                parts.push(context.guidelines.testing);
+                parts.push('\n');
+            }
+            if (context.guidelines.security) {
+                parts.push('## SECURITY.md\n');
+                parts.push(context.guidelines.security);
                 parts.push('\n');
             }
         }

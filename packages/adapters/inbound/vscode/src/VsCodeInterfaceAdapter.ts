@@ -11,13 +11,16 @@ import type {
     SpecDetail,
     Task,
     TaskStatus,
-    SteeringDocs,
+    GuidelinesDocs,
     IFileSystemPort,
     IEnginePort,
     EngineSkillConfig,
+    GuidelineGenerationResult,
+    ConfigureResult,
 } from '@spec-driven/core';
 import {
-    SteeringGenerator,
+    GuidelinesGenerator,
+    AgentOrchestrator,
     SpecPlanner,
     ContextGrounder,
     TaskManager,
@@ -28,6 +31,7 @@ import {
     type ReverseEngineerOptions,
     type AnalysisResult,
 } from '@spec-driven/core';
+import { CopilotGuidelinesHelper } from '@spec-driven/adapter-copilot';
 
 export interface PlanningOptions {
     technologies?: string[];
@@ -53,21 +57,23 @@ export interface DesignResult {
  * Defines where the agent skill file and custom instructions are created.
  */
 export const GITHUB_COPILOT_SKILL_CONFIG: EngineSkillConfig = {
-    skillDirectory: '.github/skills/spec-driven-implementation',
+    skillDirectory: '.github/skills/sdd-task-implementer',
     skillFileName: 'SKILL.md',
-    skillName: 'spec-driven-implementation',
+    skillName: 'sdd-task-implementer',
     customInstructionsPath: '.github/copilot-instructions.md',
 };
 
 export class VsCodeInterfaceAdapter implements IInterfacePort {
-    private steeringGenerator: SteeringGenerator;
+    private guidelinesGenerator: GuidelinesGenerator;
     private specPlanner: SpecPlanner | null = null;
     private specBuilder: SpecBuilder | null = null;
     private specReverser: SpecReverser | null = null;
     private contextGrounder: ContextGrounder;
     private taskManager: TaskManager;
+    private agentOrchestrator: AgentOrchestrator | null = null;
     private engineAdapter: IEnginePort | null = null;
     private skillConfig: EngineSkillConfig;
+    private copilotHelper: CopilotGuidelinesHelper;
 
     // Expose fileSystem for TaskFileWatcher
     public readonly fileSystem: IFileSystemPort;
@@ -75,9 +81,10 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
     constructor(fileSystem: IFileSystemPort, skillConfig: EngineSkillConfig = GITHUB_COPILOT_SKILL_CONFIG) {
         this.fileSystem = fileSystem;
         this.skillConfig = skillConfig;
-        this.steeringGenerator = new SteeringGenerator({ fileSystem, skillConfig });
+        this.guidelinesGenerator = new GuidelinesGenerator({ fileSystem, skillConfig });
         this.contextGrounder = new ContextGrounder({ fileSystem });
         this.taskManager = new TaskManager({ fileSystem });
+        this.copilotHelper = new CopilotGuidelinesHelper({ fileSystem });
     }
 
     /**
@@ -88,9 +95,14 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
         this.specPlanner = new SpecPlanner({ engine, fileSystem: this.fileSystem, skillConfig: this.skillConfig });
         this.specBuilder = new SpecBuilder({ engine, fileSystem: this.fileSystem });
         this.specReverser = new SpecReverser({ engine, fileSystem: this.fileSystem });
+        this.agentOrchestrator = new AgentOrchestrator({ engine, fileSystem: this.fileSystem });
 
-        // Wire engine to steering generator for AI-powered steering
-        this.steeringGenerator.setEngine(engine);
+        this.guidelinesGenerator.setEngine(engine);
+        this.contextGrounder.setEngine(engine);
+    }
+
+    getAgentOrchestrator(): AgentOrchestrator | null {
+        return this.agentOrchestrator;
     }
 
     /**
@@ -101,69 +113,57 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Steering (Implemented)
+    // Guidelines (New)
     // ═══════════════════════════════════════════════════════════════════════════
 
+    async initializeGuidelines(): Promise<GuidelinesDocs> {
+        // Ensure Copilot custom instructions are set up
+        await this.copilotHelper.ensureCustomInstructions(this.skillConfig.customInstructionsPath);
 
-    async initializeSteering(): Promise<SteeringDocs> {
-        return this.steeringGenerator.initializeSteering();
+        return this.guidelinesGenerator.initializeGuidelines();
     }
 
-    async generateTechSteering(requirements?: string): Promise<{ content: string; summary: string }> {
-        return this.steeringGenerator.generateTechSteering(requirements);
+    async generateAllGuidelines(userInquiry?: string): Promise<GuidelinesDocs> {
+        return this.guidelinesGenerator.generateAllGuidelines(userInquiry);
     }
 
-    async generateConventionsSteering(requirements?: string): Promise<{ content: string; summary: string }> {
-        return this.steeringGenerator.generateConventionsSteering(requirements);
+    async getGuidelines(): Promise<GuidelinesDocs> {
+        return this.guidelinesGenerator.loadGuidelines();
     }
 
-    async generateProductSteering(userInquiry?: string): Promise<{ content: string; summary: string }> {
-        return this.steeringGenerator.generateProductSteering(userInquiry);
+    async isGuidelinesInitialized(): Promise<boolean> {
+        return this.guidelinesGenerator.isInitialized();
     }
 
-    async generateArchitectureSteering(requirements?: string): Promise<{ content: string; summary: string }> {
-        return this.steeringGenerator.generateArchitectureSteering(requirements);
+    /**
+     * Initialize guidelines with progress callbacks for streaming feedback.
+     * Provides real-time updates as each file is processed.
+     */
+    async initializeGuidelinesWithProgress(
+        onProgress?: (result: GuidelineGenerationResult) => void
+    ): Promise<ConfigureResult> {
+        // Ensure Copilot custom instructions are set up first
+        await this.copilotHelper.ensureCustomInstructions(this.skillConfig.customInstructionsPath);
+
+        // GuidelinesGenerator.initializeGuidelinesWithProgress creates all agent skills
+        return this.guidelinesGenerator.initializeGuidelinesWithProgress(onProgress);
     }
 
-    async generateTestingSteering(requirements?: string): Promise<{ content: string; summary: string }> {
-        return this.steeringGenerator.generateTestingSteering(requirements);
-    }
-
-    async generateAllSteering(userInquiry?: string): Promise<{
-        product: { content: string; summary: string };
-        tech: { content: string; summary: string };
-        architecture: { content: string; summary: string };
-        conventions: { content: string; summary: string };
-        testing: { content: string; summary: string };
-    }> {
-        return this.steeringGenerator.generateAllSteering(userInquiry);
-    }
-
-    async isSteeringInitialized(): Promise<boolean> {
-        return this.steeringGenerator.isInitialized();
-    }
-
-    async getSteering(): Promise<SteeringDocs> {
-        return this.steeringGenerator.loadSteering();
-    }
-
-    async generateSteering(_projectPath: string): Promise<SteeringDocs> {
-        await this.steeringGenerator.generateTechSteering();
-        await this.steeringGenerator.generateArchitectureSteering();
-        await this.steeringGenerator.generateConventionsSteering();
-        return this.steeringGenerator.loadSteering();
-    }
-
-    async updateSteering(docType: keyof SteeringDocs, content: string): Promise<void> {
-        const paths: Record<keyof SteeringDocs, string> = {
-            product: '.spec/steering/product.md',
-            tech: '.spec/steering/tech.md',
-            architecture: '.spec/steering/architecture.md',
-            conventions: '.spec/steering/conventions.md',
-            testing: '.spec/steering/testing.md',
+    /**
+     * Analyze the project to detect technologies, frameworks, etc.
+     */
+    async analyzeProject(): Promise<ConfigureResult['projectAnalysis']> {
+        const analysis = await this.guidelinesGenerator.analyzeProject();
+        return {
+            languages: analysis.languages,
+            frameworks: analysis.frameworks,
+            testFrameworks: analysis.testFrameworks,
+            linters: analysis.linters,
+            buildTools: analysis.buildTools,
+            packageManager: analysis.packageManager,
         };
-        await this.fileSystem.writeFile(paths[docType], content);
     }
+
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Spec Lifecycle
@@ -182,7 +182,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
 
         // Fallback if no engine/planner available
         const id = featureName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const specPath = `.spec/specs/${id}`;
+        const specPath = `.spec/changes/${id}`;
 
         await this.fileSystem.createDirectory(specPath);
         await this.fileSystem.writeFile(
@@ -199,7 +199,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
     }
 
     async getSpecs(): Promise<SpecSummary[]> {
-        const specsPath = '.spec/specs';
+        const specsPath = '.spec/changes';
         if (!(await this.fileSystem.exists(specsPath))) {
             return [];
         }
@@ -210,7 +210,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
         for (const entry of entries) {
             if (entry.type === 'directory') {
                 const specId = entry.name;
-                const path = `.spec/specs/${specId}`;
+                const path = `.spec/changes/${specId}`;
 
                 // Get task counts
                 let taskCount = 0;
@@ -249,16 +249,20 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
     }
 
     async getSpec(specId: string): Promise<SpecDetail> {
-        const specPath = `.spec/specs/${specId}`;
+        const specPath = `.spec/changes/${specId}`;
 
         let requirements: string | undefined;
         let design: string | undefined;
+        let tasksContent: string | undefined;
 
         if (await this.fileSystem.exists(`${specPath}/requirements.md`)) {
             requirements = await this.fileSystem.readFile(`${specPath}/requirements.md`);
         }
         if (await this.fileSystem.exists(`${specPath}/design.md`)) {
             design = await this.fileSystem.readFile(`${specPath}/design.md`);
+        }
+        if (await this.fileSystem.exists(`${specPath}/tasks.md`)) {
+            tasksContent = await this.fileSystem.readFile(`${specPath}/tasks.md`);
         }
 
         // Try to get feature name from requirements
@@ -286,13 +290,14 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
             path: specPath,
             requirements,
             design,
+            tasksContent,
             tasks,
             traceability: [],
         };
     }
 
     async deleteSpec(specId: string): Promise<void> {
-        const specPath = `.spec/specs/${specId}`;
+        const specPath = `.spec/changes/${specId}`;
         await this.fileSystem.delete(specPath, { recursive: true });
     }
 
@@ -335,7 +340,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
         if (!this.specPlanner) {
             // Fallback: generate placeholder if no engine configured
             const content = this.generatePlaceholderRequirements(specId, userInput, options);
-            const reqPath = `.spec/specs/${specId}/requirements.md`;
+            const reqPath = `.spec/changes/${specId}/requirements.md`;
             await this.fileSystem.writeFile(reqPath, content);
             return { content, summary: 'Generated placeholder requirements.' };
         }
@@ -345,9 +350,9 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
             throw new Error(`Spec not found: ${specId}`);
         }
 
-        const steering = await this.getSteering();
+        const guidelines = await this.getGuidelines();
         const result = await this.specPlanner.generateRequirements(spec, userInput, {
-            steering,
+            guidelines,
             technologies: options.technologies,
             issueContext: options.issueContext,
         });
@@ -366,7 +371,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
         if (!this.specPlanner) {
             // Fallback: generate placeholder if no engine configured
             const content = this.generatePlaceholderDesign(specId, requirements, options);
-            const designPath = `.spec/specs/${specId}/design.md`;
+            const designPath = `.spec/changes/${specId}/design.md`;
             await this.fileSystem.writeFile(designPath, content);
             return { content };
         }
@@ -376,9 +381,9 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
             throw new Error(`Spec not found: ${specId}`);
         }
 
-        const steering = await this.getSteering();
+        const guidelines = await this.getGuidelines();
         const result = await this.specPlanner.generateDesign(spec, requirements, {
-            steering,
+            guidelines,
             technologies: options.technologies,
         });
 
@@ -403,7 +408,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
         if (!this.specPlanner) {
             // Fallback: generate placeholder if no engine configured
             const content = this.generatePlaceholderTasks(specId, design, options);
-            const tasksPath = `.spec/specs/${specId}/tasks.md`;
+            const tasksPath = `.spec/changes/${specId}/tasks.md`;
             await this.fileSystem.writeFile(tasksPath, content);
             return { content, summary: 'Generated placeholder tasks.' };
         }
@@ -413,7 +418,13 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
             throw new Error(`Spec not found: ${specId}`);
         }
 
-        const result = await this.specPlanner.generateTasks(spec, design, options);
+        // Load requirements to pass along with design for better task context
+        const requirements = await this.getRequirements(specId);
+
+        const result = await this.specPlanner.generateTasks(spec, design, {
+            ...options,
+            requirements: requirements ?? undefined,
+        });
         return { content: result.content, summary: result.summary };
     }
 
@@ -421,7 +432,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
      * Get requirements for a spec.
      */
     async getRequirements(specId: string): Promise<string | null> {
-        const path = `.spec/specs/${specId}/requirements.md`;
+        const path = `.spec/changes/${specId}/requirements.md`;
         if (!await this.fileSystem.exists(path)) {
             return null;
         }
@@ -432,7 +443,7 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
      * Get design for a spec.
      */
     async getDesign(specId: string): Promise<string | null> {
-        const path = `.spec/specs/${specId}/design.md`;
+        const path = `.spec/changes/${specId}/design.md`;
         if (!await this.fileSystem.exists(path)) {
             return null;
         }
@@ -491,8 +502,8 @@ The system shall respond within [X] seconds.
 
     private generatePlaceholderDesign(
         specId: string,
-        requirements: string,
-        options: PlanningOptions
+        _requirements: string,
+        _options: PlanningOptions
     ): string {
         return `# Design: ${specId}
 
@@ -553,7 +564,7 @@ sequenceDiagram
 
     private generatePlaceholderTasks(
         specId: string,
-        design: string,
+        _design: string,
         options: { suggestTdd?: boolean }
     ): string {
         const tddNote = options.suggestTdd
@@ -624,7 +635,7 @@ ${tddNote}
         return this.taskManager.getNextTask(specId);
     }
 
-    async focusTask(taskId: string): Promise<void> {
+    async focusTask(_taskId: string): Promise<void> {
         // TODO: Set active task for implementation
     }
 
@@ -674,7 +685,7 @@ ${tddNote}
         // Load context
         const requirements = await this.getRequirements(specId);
         const design = await this.getDesign(specId);
-        const steering = await this.getSteering();
+        const guidelines = await this.getGuidelines();
         const projectDocs = await this.getProjectDocs();
 
         if (!requirements || !design) {
@@ -689,7 +700,7 @@ ${tddNote}
         const result = await this.specBuilder.executeTask(task, {
             requirements,
             design,
-            steering,
+            guidelines,
             projectDocs,
         }, options);
 
@@ -788,7 +799,7 @@ ${tddNote}
 
         const requirements = await this.getRequirements(specId);
         const design = await this.getDesign(specId);
-        const steering = await this.getSteering();
+        const guidelines = await this.getGuidelines();
         const projectDocs = await this.getProjectDocs();
 
         if (!requirements || !design) {
@@ -803,7 +814,7 @@ ${tddNote}
         for await (const chunk of this.specBuilder.streamExecuteTask(task, {
             requirements,
             design,
-            steering,
+            guidelines,
             projectDocs,
         }, options)) {
             fullOutput += chunk;
