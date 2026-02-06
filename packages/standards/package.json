@@ -1,0 +1,10 @@
+{
+    "name": "@spec-driven-asteroids/standards",
+    "version": "0.1.0",
+    "description": "Universal prompt standards and platform templates for Spec Driven Asteroids",
+    "private": true,
+    "type": "module",
+    "exports": {
+        "./*": "./src/*"
+    }
+}

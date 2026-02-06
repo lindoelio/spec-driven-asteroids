@@ -1,6 +1,6 @@
-# Spec-Driven Agentic Assistant
+# Spec Driven Asteroids ☄️
 
-> A flexible, tool-agnostic platform for Spec-Driven Development — bringing discipline to AI-powered software engineering.
+> Inject Spec-Driven Intelligence into your favorite AI Agents. Rigorous. Simple. Frictionless.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -8,160 +8,84 @@
 
 ## Vision
 
-**Spec-Driven Development (SDD)** is emerging as a best practice for building reliable software with AI coding assistants. Tools like AWS Kiro, GitHub SpecKit, and Google Conductor are pioneering this space — but they often come with lock-in, complexity, or limited integration with real codebases.
+**Spec Driven Asteroids** is a modular toolkit designed to bring discipline to AI-powered software engineering. Instead of providing a custom IDE or extension, it **injects** high-standard workflows (SDD) directly into the native environments of **GitHub Copilot**, **Google Antigravity**, and **OpenCode**.
 
-**Spec-Driven Assistant** takes a different approach:
+- **Platform Native**: No new UI to learn. Work entirely within your existing AI chat.
+- **Strict Enforcement**: Uses **Model Context Protocol (MCP)** to programmatically validate AI-generated specs.
+- **Rigorous Flow**: Requirements (EARS) → Technical Design (Mermaid) → Atomic Tasks → Implementation.
 
-- **Tool-agnostic** — Works with your IDE (VS Code, CLI, more coming) and your AI engine (Copilot, OpenCode, Codex, etc.)
-- **Deeply integrated** — Lives in your codebase, not a separate platform
-- **Human-first** — Acts as a coworker, not a replacement — you review, refine, and approve at every step
-- **Simple flow** — Inspired by Kiro's elegant workflow: Requirements → Design → Tasks → Code
+## Core Pillars
 
-## How It Works
-
-```
-Natural Language → Requirements (EARS) → Technical Design → Atomic Tasks → Implementation
-```
-
-Every line of code traces back to documented requirements. Every decision is captured. Every change is intentional.
-
-## Features
-
-- **Structured Planning** — Generate EARS-format requirements from natural language
-- **Technical Design** — Architecture documents with Mermaid diagrams
-- **Task Breakdown** — Atomic, traceable implementation tasks
-- **Guidelines Management** — Project standards that AI assistants follow (AGENTS.md, CONTRIBUTING.md, etc.)
-- **Multi-Engine Support** — Bring your own AI: Copilot, OpenCode, Codex, or others
-- **Multi-Tool Support** — VS Code today, Antigravity, CLI and other IDEs coming soon
+1. **The Brain (Standards)**: Universal Markdown-based Skills and Agent Profiles that define specialized roles like `@spec-planner` and `@spec-designer`.
+2. **The Enforcer (MCP)**: A background service that verifies EARS syntax, Mermaid diagrams, and requirement traceability.
+3. **The Injector (CLI)**: A simple tool to scaffold any repository with these standards in seconds.
 
 ## Architecture
 
-The project follows a **hexagonal (ports & adapters)** architecture, making it easy to plug in new tools and AI engines:
-
 ```
 packages/
-├── core/                         # Pure domain logic (tool-agnostic)
-│   └── src/
-│       ├── agents/               # Planning agents (Requirements, Design, Tasks)
-│       ├── services/             # Orchestration and builders
-│       └── strategies/           # Prompt strategies (EARS, naming, etc.)
-│
-├── adapters/
-│   ├── inbound/                  # Development Tools (IDEs, CLIs)
-│   │   └── vscode/               # ✅ VS Code extension
-│   │   └── cli/                  # 🔜 Command-line interface
-│   │
-│   └── outbound/                 # AI Engines
-│       └── copilot/              # ✅ GitHub Copilot
-│       └── opencode/             # 🔜 OpenCode / Claude
-│       └── codex/                # 🔜 OpenAI Codex
+├── mcp/                # Node.js MCP Server (The Enforcer)
+├── standards/          # Markdown templates for Skills & Agents (The Brain)
+└── cli/                # Terminal interface for injections (The Injector)
 ```
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 20+
-- VS Code
-- An AI coding assistant (GitHub Copilot for now)
-
-### Installation
+### 1. Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/lindoelio/spec-driven-agentic.git
-cd spec-driven-agentic
+git clone https://github.com/lindoelio/spec-driven-agentic-assistant.git
+cd spec-driven-agentic-assistant
 
 # Install dependencies
 pnpm install
 
-# Build all packages
+# Build the toolkit
 pnpm build
-
-# Package the VS Code extension
-pnpm package
 ```
 
-### Install the VS Code Extension
+### 2. Inject into your Project
 
-1. Open VS Code
-2. Press `Cmd+Shift+P` → **Extensions: Install from VSIX...**
-3. Select `packages/adapters/inbound/vscode/spec-driven-assistant-vscode-0.1.0.vsix`
-4. Reload VS Code
-
-## Usage (VS Code)
-
-### Chat Commands
-
-| Command | Description |
-|---------|-------------|
-| `@spec /configure` | Initialize or update guideline documents |
-| `@spec /plan <feature>` | Start planning a new feature |
-| `@spec /status` | Check project and spec progress |
-
-### Workflow
-
-1. **Configure** — Run `@spec /configure` to set up project guidelines
-2. **Plan** — Describe your feature with `@spec /plan User login with OAuth`
-3. **Review** — Approve or refine the generated requirements (human-in-the-loop)
-4. **Design** — Continue to technical design with architecture diagrams
-5. **Tasks** — Break down into atomic implementation tasks
-6. **Implement** — Execute tasks with full traceability
-
-## Contributing
-
-We welcome contributions! Whether it's:
-
-- **New inbound adapters** — CLI, JetBrains IDEs, Neovim, etc.
-- **New outbound adapters** — OpenCode, Codex, local LLMs, etc.
-- **Core improvements** — Better prompts, new strategies, bug fixes
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Roadmap
-
-- [x] VS Code extension with Copilot integration
-- [ ] Antigravity extension
-- [ ] OpenCode adapter
-- [ ] Codex adapter
-- [ ] Claude adapter
-- [ ] Command-line interface (CLI)
-- [ ] JetBrains IDE plugin
-- [ ] Local LLM support (Ollama, llama.cpp)
-- [ ] Team collaboration features
-
-## Development
+Navigate to your target repository and run:
 
 ```bash
-# Build all packages
-pnpm build
-
-# Type checking
-pnpm typecheck
-
-# Run tests
-pnpm test
-
-# Lint code
-pnpm lint
+npx spec-driven-asteroids inject
 ```
 
-### Package Scripts
+Select your platforms (GitHub Copilot, Antigravity, or OpenCode) to scaffold the necessary `.github/`, `.agent/`, or `.opencode/` configurations.
 
-| Script | Description |
-|--------|-------------|
-| `pnpm build` | Build all packages |
-| `pnpm clean` | Clean build artifacts |
-| `pnpm typecheck` | Run TypeScript type checking |
-| `pnpm test` | Run tests across all packages |
-| `pnpm package` | Build and package the VS Code extension |
+### 3. Connect the Enforcer
 
-## License
+Configure your AI tool to connect to the MCP server using `pnpm`:
 
-MIT © [Lindoélio Lázaro](mailto:lindoelio@gmail.com)
+```json
+{
+  "mcpServers": {
+    "spec-driven-asteroids": {
+      "command": "pnpm",
+      "args": ["--dir", "/path/to/spec-driven-agentic-assistant/packages/mcp", "start"]
+    }
+  }
+}
+```
+
+## Usage
+
+### GitHub Copilot
+Use specialized custom agents directly in chat:
+- `@spec-planner`: Create EARS requirements.
+- `@spec-designer`: Create technical designs.
+- `@copilot`: Implement code following the approved specs.
+
+### Google Antigravity
+Use native workflows:
+- `/spec-driven-feature`: Orchestrates the full Requirements → Design → Task loop.
 
 ---
 
-<p align="center">
-  <em>Built for developers who believe AI should amplify — not replace — human judgment.</em>
-</p>
+## Standards
+
+- **EARS**: Easy Approach to Requirements Syntax (WHEN, IF, THEN, SHALL).
+- **Mermaid**: Standard visualization for architecture and sequence diagrams.
+- **Traceability**: Every design and task must link back to a requirement ID.

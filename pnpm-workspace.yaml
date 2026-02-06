@@ -1,7 +1,4 @@
 packages:
-  - "packages/core"
-  - "packages/spec-driver-mcp"
+  - "packages/mcp"
   - "packages/standards"
   - "packages/cli"
-  - "packages/adapters/inbound/*"
-  - "packages/adapters/outbound/*"
