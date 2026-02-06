@@ -72,8 +72,8 @@ export class SpecsTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> 
             ));
         }
 
-        // Tasks (show if tasks.md exists)
-        if ((spec as { tasksContent?: string }).tasksContent) {
+        // Tasks (show if tasks exist - check taskCount or tasks array)
+        if (spec.taskCount > 0 || (spec.tasks && spec.tasks.length > 0)) {
             children.push(new SpecTreeItem(
                 `Tasks${spec.taskCount > 0 ? ` (${spec.completedTaskCount}/${spec.taskCount})` : ''}`,
                 element.specId,

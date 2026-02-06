@@ -102,9 +102,9 @@ For specialized implementation instructions, load the appropriate skill:
 
 | Skill | Use When |
 |-------|----------|
-| `sdd-requirements-writer` | Writing EARS requirements |
-| `sdd-technical-designer` | Creating technical designs |
-| `sdd-task-decomposer` | Breaking down into tasks |
-| `sdd-task-implementer` | Implementing tasks |
+| `spec-driven-requirements-writer` | Writing EARS requirements |
+| `spec-driven-technical-designer` | Creating technical designs |
+| `spec-driven-task-decomposer` | Breaking down into tasks |
+| `spec-driven-task-implementer` | Implementing tasks |
 
 <!-- SpecDriven:managed:end -->

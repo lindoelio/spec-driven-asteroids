@@ -1,11 +1,11 @@
 ---
-name: {{SKILL_NAME}}
-description: Implement features following the SpecDriven workflow. Use this when asked to implement tasks, phases, or features from a .spec directory, or when working with requirements.md, design.md, or tasks.md files.
+name: spec-driven-task-implementer
+description: Implement features following the Spec-Driven development workflow. Use this when asked to implement tasks, phases, or features from a .spec directory, or when working with requirements.md, design.md, or tasks.md files.
 ---
 
-# SpecDriven Implementation Skill
+# Spec-Driven Task Implementer Skill
 
-This skill teaches you how to implement features using the SpecDriven methodology (SDD).
+This skill teaches you how to implement features using the Spec-Driven methodology (SDD).
 
 ## Senior Engineer Behavior
 

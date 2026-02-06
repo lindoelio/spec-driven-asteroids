@@ -7,9 +7,9 @@ import type { ValidationResult } from './AgentResult.js';
 import { loadAgentSkillTemplateByType } from '../lib/ResourceLoader.js';
 
 export class TasksAgent extends BaseAgent {
-    readonly name = 'task-decomposer';
+    readonly name = 'spec-driven-task-decomposer';
     readonly phase = 'tasks' as const;
-    readonly skillPath = '.github/skills/sdd-task-decomposer/SKILL.md';
+    readonly skillPath = '.spec/skills/spec-driven-task-decomposer/SKILL.md';
 
     constructor(engine: IEnginePort, fileSystem: IFileSystemPort) {
         super(engine, fileSystem);

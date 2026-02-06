@@ -1,7 +1,7 @@
 {
-    "name": "specdriven-agentic",
+    "name": "spec-driven-assistant-vscode",
     "version": "0.1.0",
-    "displayName": "Spec Driven Assistant",
+    "displayName": "Spec-Driven Assistant",
     "description": "Spec-Driven Development for AI-Powered Software Engineering",
     "publisher": "lindoelio",
     "license": "MIT",
@@ -86,7 +86,7 @@
             "activitybar": [
                 {
                     "id": "specdriven",
-                    "title": "SpecDriven",
+                    "title": "Spec-Driven Artifacts",
                     "icon": "$(notebook)"
                 }
             ]
@@ -117,8 +117,8 @@
             {
                 "id": "specdriven.spec",
                 "name": "spec",
-                "fullName": "SpecDriven Assistant",
-                "description": "Spec-driven development assistant",
+                "fullName": "Spec-Driven Assistant",
+                "description": "Spec-Driven Development Assistant",
                 "isSticky": true,
                 "commands": [
                     {

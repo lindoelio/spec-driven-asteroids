@@ -57,9 +57,10 @@ export interface DesignResult {
  * Defines where the agent skill file and custom instructions are created.
  */
 export const GITHUB_COPILOT_SKILL_CONFIG: EngineSkillConfig = {
-    skillDirectory: '.github/skills/sdd-task-implementer',
+    skillBaseDirectory: '.spec/skills',
+    skillDirectory: '.spec/skills/spec-driven-task-implementer',
     skillFileName: 'SKILL.md',
-    skillName: 'sdd-task-implementer',
+    skillName: 'spec-driven-task-implementer',
     customInstructionsPath: '.github/copilot-instructions.md',
 };
 
@@ -253,16 +254,12 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
 
         let requirements: string | undefined;
         let design: string | undefined;
-        let tasksContent: string | undefined;
 
         if (await this.fileSystem.exists(`${specPath}/requirements.md`)) {
             requirements = await this.fileSystem.readFile(`${specPath}/requirements.md`);
         }
         if (await this.fileSystem.exists(`${specPath}/design.md`)) {
             design = await this.fileSystem.readFile(`${specPath}/design.md`);
-        }
-        if (await this.fileSystem.exists(`${specPath}/tasks.md`)) {
-            tasksContent = await this.fileSystem.readFile(`${specPath}/tasks.md`);
         }
 
         // Try to get feature name from requirements
@@ -290,7 +287,6 @@ export class VsCodeInterfaceAdapter implements IInterfacePort {
             path: specPath,
             requirements,
             design,
-            tasksContent,
             tasks,
             traceability: [],
         };
@@ -921,6 +917,27 @@ ${tddNote}
             },
             async queryMemory() {
                 return [];
+            },
+            async selectRelevantFiles() {
+                return [];
+            },
+            async analyzeRepository() {
+                return {
+                    techStack: {
+                        languages: [],
+                        frameworks: [],
+                        tools: [],
+                        metadata: [],
+                    },
+                    patterns: [],
+                    existingDocs: [],
+                    conflicts: [],
+                    obsoletePaths: [],
+                    structureSummary: '',
+                };
+            },
+            async synthesizeGuideline() {
+                return '';
             },
         };
     }

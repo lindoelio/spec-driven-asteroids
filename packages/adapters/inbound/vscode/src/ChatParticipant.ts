@@ -156,6 +156,7 @@ export function registerChatParticipant(
                         {
                             prompt: 'Approved. Proceed with the technical design.',
                             label: 'Continue to Design',
+                            command: '', // Empty command to route to default handler
                         }
                     );
                     break;
@@ -166,6 +167,7 @@ export function registerChatParticipant(
                         {
                             prompt: 'Approved. Generate implementation tasks.',
                             label: 'Continue to Tasks',
+                            command: '', // Empty command to route to default handler
                         }
                     );
                     break;
@@ -176,6 +178,7 @@ export function registerChatParticipant(
                         {
                             prompt: `Implement phase 1 of ${specId}`,
                             label: 'Start Implementation (Phase 1)',
+                            command: '', // Empty command to route to default handler
                         }
                     );
                     break;
@@ -186,10 +189,12 @@ export function registerChatParticipant(
                         {
                             prompt: 'Show the current spec status.',
                             label: 'View Spec Status',
+                            command: 'status', // Route to status command
                         },
                         {
                             prompt: 'Plan a new feature.',
                             label: 'Plan New Feature',
+                            command: 'plan', // Route to plan command
                         }
                     );
                     break;
@@ -234,23 +239,27 @@ Please describe the feature you want to build. I'll help you create:
         return { command: 'plan', success: true };
     }
 
-    stream.markdown(`# 📋 Planning: ${userMessage}\n\n`);
+    // Truncate feature name for display if too long
+    const displayName = userMessage.length > 60
+        ? userMessage.substring(0, 57) + '...'
+        : userMessage;
+    stream.markdown(`## Planning: ${displayName}\n\n`);
 
     // Check if guidelines are configured, auto-configure if not
     const guidelines = await adapter.getGuidelines();
     const hasGuidelines = Object.values(guidelines).some(Boolean);
 
     if (!hasGuidelines) {
-        stream.markdown(`${Icons.wrench} **Setting up project guidelines first...**\n\n`);
+        stream.markdown(`${Icons.inProgress} Setting up project guidelines first...\n\n`);
         stream.progress('Configuring guidelines...');
 
         try {
             await adapter.initializeGuidelinesWithProgress((guideline) => {
                 stream.markdown(`  ${Icons.success} ${guideline.fileName}\n`);
             });
-            stream.markdown(`\n${Icons.success} Guidelines configured. Continuing with planning...\n\n`);
+            stream.markdown(`\n${Icons.success} Guidelines configured.\n\n`);
         } catch (error) {
-            stream.markdown(`${Icons.warning} Could not auto-configure guidelines. Continuing anyway...\n\n`);
+            stream.markdown(`${Icons.warning} Could not auto-configure guidelines. Continuing...\n\n`);
         }
     }
 
@@ -353,7 +362,7 @@ async function handleRequirementsCommand(
         return { command: 'requirements', success: false };
     }
 
-    stream.markdown(`# 📝 Generating Requirements\n\n`);
+    stream.markdown(`## Generating Requirements\n\n`);
     stream.progress('Analyzing input and generating EARS requirements...');
 
     // Add user input to context
@@ -377,7 +386,7 @@ async function handleRequirementsCommand(
 
         state.phase = 'requirements';
 
-        stream.markdown(`# 📝 Requirements Generated\n\n`);
+        stream.markdown(`## Requirements Generated\n\n`);
         stream.markdown(`Saved to: \`.spec/changes/${state.specId}/requirements.md\`\n\n`);
         stream.markdown(`---\n\n`);
 
@@ -434,12 +443,12 @@ async function handleConfigureCommand(
     const hasExisting = Object.values(existing).some(Boolean);
 
     if (hasExisting) {
-        stream.markdown(`${Icons.wrench} We'll update the managed sections while keeping your customizations intact.\n\n`);
+        stream.markdown(`${Icons.inProgress} We'll update the managed sections while keeping your customizations intact.\n\n`);
     }
 
     try {
         // 4. Generate with real-time streaming feedback
-        rb.section(`${Icons.document} Guidelines`);
+        rb.section(`Guidelines`);
 
         const result = await adapter.initializeGuidelinesWithProgress((guideline) => {
             if (guideline.wasCreated) {
@@ -450,7 +459,7 @@ async function handleConfigureCommand(
         });
 
         // 5. Copilot integration files
-        rb.section(`${Icons.robot} Copilot Integration`);
+        rb.section(`Copilot Integration`);
         for (const file of result.copilotFiles) {
             if (file.wasCreated) {
                 rb.created(file.path);
@@ -463,9 +472,9 @@ async function handleConfigureCommand(
         stream.markdown(`\n`);
 
         if (result.totalCreated > 0 && result.totalUpdated > 0) {
-            rb.celebrate(`Created ${result.totalCreated} new ${rb.pluralize(result.totalCreated, 'file')} and updated ${result.totalUpdated}!`);
+            stream.markdown(`${Icons.success} Created ${result.totalCreated} new ${rb.pluralize(result.totalCreated, 'file')} and updated ${result.totalUpdated}.\n`);
         } else if (result.totalCreated > 0) {
-            rb.celebrate(`Created ${result.totalCreated} guideline ${rb.pluralize(result.totalCreated, 'file')}!`);
+            stream.markdown(`${Icons.success} Created ${result.totalCreated} guideline ${rb.pluralize(result.totalCreated, 'file')}.\n`);
         } else {
             stream.markdown(`${Icons.updated} Updated ${result.totalUpdated} ${rb.pluralize(result.totalUpdated, 'file')}.\n`);
         }
@@ -505,7 +514,7 @@ async function handleStatusCommand(
 ): Promise<SpecChatResultMetadata> {
     const rb = new ResponseBuilder(stream);
 
-    stream.markdown(`# ${Icons.chart} Project Status\n\n`);
+    stream.markdown(`## Project Status\n\n`);
 
     // Guidelines status
     const guidelines = await adapter.getGuidelines();
@@ -514,8 +523,8 @@ async function handleStatusCommand(
 
     // Empty state - fresh project
     if (guidelineCount === 0 && specs.length === 0) {
-        stream.markdown(`Looks like we're starting fresh! ${Icons.seedling}\n\n`);
-        stream.markdown(`Let's get set up:\n`);
+        stream.markdown(`This project hasn't been configured yet.\n\n`);
+        stream.markdown(`**Get started:**\n`);
         stream.markdown(`1. Ask me to configure your project guidelines\n`);
         stream.markdown(`2. Then describe a feature you'd like to plan\n`);
         return { command: 'status', success: true };
@@ -540,19 +549,19 @@ async function handleStatusCommand(
     let activeSpecId: string | undefined;
 
     if (specs.length === 0) {
-        stream.markdown(`${Icons.clipboard} **Specs:** None yet\n`);
+        stream.markdown(`**Specs:** None yet\n`);
         stream.markdown(`   Describe a feature to create one\n`);
     } else {
         const completed = specs.filter(s => s.taskCount > 0 && s.completedTaskCount === s.taskCount);
         const inProgress = specs.filter(s => s.taskCount === 0 || s.completedTaskCount < s.taskCount);
 
-        stream.markdown(`${Icons.clipboard} **Specs:** ${specs.length} total`);
+        stream.markdown(`**Specs:** ${specs.length} total`);
         if (completed.length) stream.markdown(` (${completed.length} complete)`);
         stream.markdown(`\n\n`);
 
         // In-progress specs with details
         if (inProgress.length > 0) {
-            stream.markdown(`**${Icons.construction} In Progress:**\n\n`);
+            stream.markdown(`**${Icons.inProgress} In Progress:**\n\n`);
 
             for (const spec of inProgress.slice(0, 3)) {
                 const tasks = await adapter.getTasks(spec.id);
@@ -587,13 +596,13 @@ async function handleStatusCommand(
     // Current session context
     if (state.specId) {
         stream.markdown(`\n---\n\n`);
-        stream.markdown(`${Icons.target} **Current session:** \`${state.specId}\` (${state.phase})\n`);
+        stream.markdown(`**Current session:** \`${state.specId}\` (${state.phase})\n`);
     }
 
     // Contextual next steps based on state
     if (nextTaskInfo) {
         stream.markdown(`\n---\n\n`);
-        stream.markdown(`${Icons.lightbulb} **Continue working:** Task ${nextTaskInfo.id} — ${nextTaskInfo.title}\n`);
+        stream.markdown(`${Icons.tip} **Continue working:** Task ${nextTaskInfo.id} — ${nextTaskInfo.title}\n`);
     }
 
     return {
@@ -665,7 +674,7 @@ async function handleDefaultCommand(
             return;
         }
         // For design and tasks, inform user these are part of the planning flow
-        stream.markdown(`${Icons.lightbulb} To refine ${docType}, use the approval flow during planning. The design and tasks are generated as part of the planning pipeline.\n\n`);
+        stream.markdown(`${Icons.tip} To refine ${docType}, use the approval flow during planning. The design and tasks are generated as part of the planning pipeline.\n\n`);
     }
 
     // If there's an active spec in gathering phase, treat input as additional context
@@ -696,8 +705,8 @@ async function handleDefaultCommand(
     }
 
     // Default help response - contextual and friendly
-    stream.markdown(`# ${Icons.wave} Hey there!\n\n`);
-    stream.markdown(`We help you build software with discipline: **Requirements → Design → Tasks → Code**.\n\n`);
+    stream.markdown(`## SpecDriven Assistant\n\n`);
+    stream.markdown(`I help you build software with discipline: **Requirements → Design → Tasks → Code**.\n\n`);
 
     // Check project state for contextual suggestions
     const guidelines = await adapter.getGuidelines();
@@ -705,30 +714,30 @@ async function handleDefaultCommand(
     const specs = await adapter.getSpecs();
 
     if (!hasGuidelines) {
-        stream.markdown(`${Icons.rocket} **Get started:** Ask me to configure your project guidelines.\n\n`);
+        stream.markdown(`**Get started:** Ask me to configure your project guidelines.\n\n`);
     } else if (specs.length === 0) {
-        stream.markdown(`${Icons.rocket} **Ready to plan!** Describe a feature to start your first spec.\n\n`);
+        stream.markdown(`**Ready to plan!** Describe a feature to start your first spec.\n\n`);
     } else {
-        stream.markdown(`${Icons.clipboard} You have ${specs.length} ${rb.pluralize(specs.length, 'spec')}. Ask me about the current status to see progress.\n\n`);
+        stream.markdown(`You have ${specs.length} ${rb.pluralize(specs.length, 'spec')}. Ask me about the current status to see progress.\n\n`);
     }
 
     // Commands table
     stream.markdown(`## Commands\n\n`);
     stream.markdown(`| Command | What it does |\n`);
     stream.markdown(`|---------|-------------|\n`);
-    stream.markdown(`| \`/plan <feature>\` | ${Icons.document} Start planning a new feature |\n`);
-    stream.markdown(`| \`/configure\` | ${Icons.wrench} Set up or refresh guideline docs |\n`);
-    stream.markdown(`| \`/status\` | ${Icons.chart} Check project and spec progress |\n\n`);
+    stream.markdown(`| \`/plan <feature>\` | Start planning a new feature |\n`);
+    stream.markdown(`| \`/configure\` | Set up or refresh guideline docs |\n`);
+    stream.markdown(`| \`/status\` | Check project and spec progress |\n\n`);
 
     // Current session info
     if (state.specId) {
         stream.markdown(`---\n\n`);
-        stream.markdown(`${Icons.target} **Current session:** \`${state.specId}\` — ${state.featureName} (${state.phase})\n\n`);
+        stream.markdown(`**Current session:** \`${state.specId}\` — ${state.featureName} (${state.phase})\n\n`);
 
         if (state.phase === 'gathering') {
-            stream.markdown(`${Icons.lightbulb} Provide more details about your feature, or say "generate" to proceed.\n`);
+            stream.markdown(`${Icons.tip} Provide more details about your feature, or say "generate" to proceed.\n`);
         }
     }
 
-    stream.markdown(`\n*What would you like to do?* ${Icons.thinking}\n`);
+    stream.markdown(`\n*What would you like to do?*\n`);
 }

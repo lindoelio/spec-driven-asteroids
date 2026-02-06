@@ -48,10 +48,10 @@ export const RESOURCE_PATHS = {
             styleguide: 'templates/guidelines/STYLEGUIDE.md',
         },
         skills: {
-            requirementsWriter: 'templates/skills/sdd-requirements-writer.md',
-            technicalDesigner: 'templates/skills/sdd-technical-designer.md',
-            taskDecomposer: 'templates/skills/sdd-task-decomposer.md',
-            taskImplementer: 'templates/skills/sdd-task-implementer.md',
+            requirementsWriter: 'templates/skills/spec-driven-requirements-writer.md',
+            technicalDesigner: 'templates/skills/spec-driven-technical-designer.md',
+            taskDecomposer: 'templates/skills/spec-driven-task-decomposer.md',
+            taskImplementer: 'templates/skills/spec-driven-task-implementer.md',
         },
     },
 } as const;
@@ -123,7 +123,7 @@ export function loadAgentSkillTemplateByType(
  * Load the task implementer skill template.
  * @param skillName - The skill name to substitute in the template
  */
-export function loadAgentSkillTemplate(skillName: string = 'sdd-task-implementer'): string {
+export function loadAgentSkillTemplate(skillName: string = 'spec-driven-task-implementer'): string {
     const template = loadResource(RESOURCE_PATHS.templates.skills.taskImplementer);
     return template.replace(/\{\{SKILL_NAME\}\}/g, skillName);
 }

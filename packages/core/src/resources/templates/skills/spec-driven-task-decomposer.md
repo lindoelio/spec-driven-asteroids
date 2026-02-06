@@ -1,9 +1,9 @@
 ---
-name: task-decomposer
+name: spec-driven-task-decomposer
 description: Specialized agent for decomposing designs into atomic implementation tasks.
 ---
 
-# Task Decomposer Agent
+# Spec-Driven Task Decomposer Skill
 
 ## Expertise
 - Work breakdown structure

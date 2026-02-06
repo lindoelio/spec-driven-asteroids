@@ -32,11 +32,11 @@ export class GuidelinesTreeProvider implements vscode.TreeDataProvider<Guideline
 
         const docs = [
             { name: 'AGENTS', path: GUIDELINES_PATHS.agents, icon: 'person', contextValue: 'guidelines-agents' },
-            { name: 'Architecture', path: GUIDELINES_PATHS.architecture, icon: 'symbol-structure', contextValue: 'guidelines-architecture' },
-            { name: 'Contributing', path: GUIDELINES_PATHS.contributing, icon: 'law', contextValue: 'guidelines-contributing' },
-            { name: 'Testing', path: GUIDELINES_PATHS.testing, icon: 'beaker', contextValue: 'guidelines-testing' },
-            { name: 'Security', path: GUIDELINES_PATHS.security, icon: 'shield', contextValue: 'guidelines-security' },
-            { name: 'Styleguide', path: GUIDELINES_PATHS.styleguide, icon: 'paintcan', contextValue: 'guidelines-styleguide' },
+            { name: 'ARCHITECTURE', path: GUIDELINES_PATHS.architecture, icon: 'symbol-structure', contextValue: 'guidelines-architecture' },
+            { name: 'CONTRIBUTING', path: GUIDELINES_PATHS.contributing, icon: 'law', contextValue: 'guidelines-contributing' },
+            { name: 'TESTING', path: GUIDELINES_PATHS.testing, icon: 'beaker', contextValue: 'guidelines-testing' },
+            { name: 'SECURITY', path: GUIDELINES_PATHS.security, icon: 'shield', contextValue: 'guidelines-security' },
+            { name: 'STYLEGUIDE', path: GUIDELINES_PATHS.styleguide, icon: 'paintcan', contextValue: 'guidelines-styleguide' },
         ];
 
         for (const doc of docs) {

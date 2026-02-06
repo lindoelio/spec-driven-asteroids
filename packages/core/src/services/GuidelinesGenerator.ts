@@ -16,7 +16,6 @@ import {
     type RepositoryInsights,
     GUIDELINES_PATHS,
     getGuidelineTemplate,
-    generateAgentSkillTemplate,
     SPECDRIVEN_SECTION_MARKERS,
     extractSpecDrivenSection,
     wrapInSpecDrivenSection,
@@ -53,9 +52,10 @@ export interface MergeResult {
  * Default skill config for GitHub Copilot.
  */
 export const DEFAULT_SKILL_CONFIG: EngineSkillConfig = {
-    skillDirectory: '.github/skills/sdd-task-implementer',
+    skillBaseDirectory: '.spec/skills',
+    skillDirectory: '.spec/skills/spec-driven-task-implementer',
     skillFileName: 'SKILL.md',
-    skillName: 'sdd-task-implementer',
+    skillName: 'spec-driven-task-implementer',
     customInstructionsPath: '.github/copilot-instructions.md',
 };
 
@@ -561,40 +561,39 @@ export class GuidelinesGenerator {
      * Ensure the SpecDriven Agent Skills exist.
      * Creates all phase-specific skills: task-implementer, requirements-writer,
      * technical-designer, and task-decomposer.
-     * Note: Custom instructions (e.g., copilot-instructions.md) are handled
-     * by the specific adapter (e.g., CopilotGuidelinesHelper in the Copilot adapter).
+     *
+     * @param force - If true, overwrite existing skill files
      */
-    async ensureAgentSkill(): Promise<void> {
-        // Create the main task implementer skill
-        const skillPath = `${this.skillConfig.skillDirectory}/${this.skillConfig.skillFileName}`;
-        if (!await this.deps.fileSystem.exists(skillPath)) {
-            await this.deps.fileSystem.createDirectory(this.skillConfig.skillDirectory);
-            await this.deps.fileSystem.writeFile(skillPath, generateAgentSkillTemplate(this.skillConfig.skillName));
-        }
+    async ensureAgentSkill(force: boolean = false): Promise<void> {
+        const baseDir = this.skillConfig.skillBaseDirectory;
 
-        // Create all other agent skills
+        // All agent skills to create
         const agentSkills = [
             {
-                dir: '.github/skills/sdd-requirements-writer',
-                file: 'SKILL.md',
+                name: 'spec-driven-task-implementer',
+                content: loadAgentSkillTemplateByType('taskImplementer'),
+            },
+            {
+                name: 'spec-driven-requirements-writer',
                 content: loadAgentSkillTemplateByType('requirementsWriter'),
             },
             {
-                dir: '.github/skills/sdd-technical-designer',
-                file: 'SKILL.md',
+                name: 'spec-driven-technical-designer',
                 content: loadAgentSkillTemplateByType('technicalDesigner'),
             },
             {
-                dir: '.github/skills/sdd-task-decomposer',
-                file: 'SKILL.md',
+                name: 'spec-driven-task-decomposer',
                 content: loadAgentSkillTemplateByType('taskDecomposer'),
             },
         ];
 
         for (const skill of agentSkills) {
-            const path = `${skill.dir}/${skill.file}`;
-            if (!await this.deps.fileSystem.exists(path)) {
-                await this.deps.fileSystem.createDirectory(skill.dir);
+            const dir = `${baseDir}/${skill.name}`;
+            const path = `${dir}/SKILL.md`;
+            const exists = await this.deps.fileSystem.exists(path);
+
+            if (!exists || force) {
+                await this.deps.fileSystem.createDirectory(dir);
                 await this.deps.fileSystem.writeFile(path, skill.content);
             }
         }

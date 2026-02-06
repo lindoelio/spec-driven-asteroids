@@ -13,13 +13,12 @@ import type { IEnginePort } from '../ports/outbound/IEnginePort.js';
 import type { IFileSystemPort } from '../ports/outbound/IFileSystemPort.js';
 import { Spec } from '../domain/Spec.js';
 import type { GuidelinesDocs, EngineSkillConfig } from '../domain/Guidelines.js';
-import { generateAgentSkillTemplate } from '../domain/Guidelines.js';
 import { ContextGrounder, type ImpactAnalysis } from './ContextGrounder.js';
 import { EarsStrategy, type IssueContext } from '../strategies/EarsStrategy.js';
 import { DesignStrategy } from '../strategies/DesignStrategy.js';
 import { TaskDecomposerStrategy } from '../strategies/TaskDecomposerStrategy.js';
 import { NamingStrategy } from '../strategies/NamingStrategy.js';
-import { DEFAULT_SKILL_CONFIG } from './GuidelinesGenerator.js';
+import { DEFAULT_SKILL_CONFIG, GuidelinesGenerator } from './GuidelinesGenerator.js';
 
 export interface SpecPlannerDependencies {
     engine: IEnginePort;
@@ -271,18 +270,14 @@ export class SpecPlanner {
 
     /**
      * Ensure the SpecDriven Agent Skill exists.
-     * Uses the configured skill path from the inbound adapter.
+     * Delegates to GuidelinesGenerator which manages all skills.
      */
     private async ensureAgentSkill(): Promise<void> {
-        const skillPath = `${this.skillConfig.skillDirectory}/${this.skillConfig.skillFileName}`;
-
-        // Only create if it doesn't exist
-        if (await this.deps.fileSystem.exists(skillPath)) {
-            return;
-        }
-
-        await this.deps.fileSystem.createDirectory(this.skillConfig.skillDirectory);
-        await this.deps.fileSystem.writeFile(skillPath, generateAgentSkillTemplate(this.skillConfig.skillName));
+        const generator = new GuidelinesGenerator({
+            fileSystem: this.deps.fileSystem,
+            skillConfig: this.skillConfig,
+        });
+        await generator.ensureAgentSkill();
     }
 
     /**

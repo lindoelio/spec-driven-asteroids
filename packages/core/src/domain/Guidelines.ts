@@ -264,7 +264,10 @@ export const DOCUMENT_RESPONSIBILITY_MATRIX: Record<
  * Different AI engines have different conventions for skill/instruction files.
  */
 export interface EngineSkillConfig {
-    /** The directory path for the skill file (e.g., '.github/skills/spec-driven-implementation') */
+    /** The base directory for all skills (e.g., '.spec/skills') */
+    skillBaseDirectory: string;
+
+    /** The directory path for the primary skill file (e.g., '.spec/skills/spec-driven-task-implementer') */
     skillDirectory: string;
 
     /** The skill file name (e.g., 'SKILL.md') */
@@ -444,9 +447,9 @@ export function getGuidelineTemplate(type: GuidelineType): string {
 
 /**
  * Generate Agent Skill template with customizable skill name.
- * @param skillName - The name of the skill (e.g., 'sdd-task-implementer')
+ * @param skillName - The name of the skill (e.g., 'spec-driven-task-implementer')
  */
-export function generateAgentSkillTemplate(skillName: string = 'sdd-task-implementer'): string {
+export function generateAgentSkillTemplate(skillName: string = 'spec-driven-task-implementer'): string {
     return loadAgentSkillTemplate(skillName);
 }
 

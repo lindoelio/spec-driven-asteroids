@@ -1,9 +1,9 @@
-/p---
-name: requirements-writer
+---
+name: spec-driven-requirements-writer
 description: Specialized agent for writing EARS-format requirements documents.
 ---
 
-# Requirements Writer Agent
+# Spec-Driven Requirements Writer Skill
 
 ## Expertise
 - EARS (Easy Approach to Requirements Syntax) patterns

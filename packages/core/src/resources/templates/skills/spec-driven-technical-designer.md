@@ -1,9 +1,9 @@
 ---
-name: technical-designer
+name: spec-driven-technical-designer
 description: Specialized agent for creating technical design documents with architecture diagrams.
 ---
 
-# Technical Designer Agent
+# Spec-Driven Technical Design Skill
 
 ## Expertise
 - Software architecture patterns

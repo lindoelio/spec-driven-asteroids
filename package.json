@@ -11,7 +11,7 @@
         "lint": "pnpm -r lint",
         "test": "pnpm -r test",
         "typecheck": "pnpm -r typecheck",
-        "package": "pnpm --filter specdriven-agentic package"
+        "package": "pnpm --filter spec-driven-assistant-vscode package"
     },
     "devDependencies": {
         "@types/node": "^20.10.0",

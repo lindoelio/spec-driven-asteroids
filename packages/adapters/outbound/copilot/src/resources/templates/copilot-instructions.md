@@ -23,11 +23,22 @@ This project follows **Spec-Driven Development (SDD)**. Feature specifications a
 └── tasks.md         # Implementation tasks (checkbox format)
 ```
 
+## Spec-Driven Available Agent Skills
+
+The following skills are available for specific SDD phases:
+
+| Skill | Path | Use When |
+|-------|------|----------|
+| **Task Implementer** | `.spec/skills/spec-driven-task-implementer/SKILL.md` | Implementing tasks from tasks.md |
+| **Requirements Writer** | `.spec/skills/spec-driven-requirements-writer/SKILL.md` | Writing EARS-format requirements |
+| **Technical Designer** | `.spec/skills/spec-driven-technical-designer/SKILL.md` | Creating technical design docs |
+| **Task Decomposer** | `.spec/skills/spec-driven-task-decomposer/SKILL.md` | Breaking designs into atomic tasks |
+
 ### Implementation Workflow
 
-When implementing tasks, use the `sdd-task-implementer` skill:
+When implementing tasks, use the `spec-driven-task-implementer` skill:
 
-1. **Load the skill**: `.github/skills/sdd-task-implementer/SKILL.md`
+1. **Load the skill**: `.spec/skills/spec-driven-task-implementer/SKILL.md`
 2. **Read guidelines**: Start with `AGENTS.md` at repository root
 3. **Read the feature spec**: Check `.spec/changes/<feature-id>/` for context
 4. **Mark task status**: Update `tasks.md` with `[~]` when starting, `[x]` when done

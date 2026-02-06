@@ -30,7 +30,7 @@
 1. Open VS Code
 2. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
 3. Type **"Extensions: Install from VSIX..."**
-4. Select the `specdriven-agentic-0.1.0.vsix` file
+4. Select the `spec-driven-assistant-vscode-0.1.0.vsix` file
 5. Reload VS Code when prompted
 
 ### Verify Installation

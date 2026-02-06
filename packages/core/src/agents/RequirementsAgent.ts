@@ -7,9 +7,9 @@ import type { ValidationResult } from './AgentResult.js';
 import { loadAgentSkillTemplateByType } from '../lib/ResourceLoader.js';
 
 export class RequirementsAgent extends BaseAgent {
-    readonly name = 'requirements-writer';
+    readonly name = 'spec-driven-requirements-writer';
     readonly phase = 'requirements' as const;
-    readonly skillPath = '.github/skills/sdd-requirements-writer/SKILL.md';
+    readonly skillPath = '.spec/skills/spec-driven-requirements-writer/SKILL.md';
 
     constructor(engine: IEnginePort, fileSystem: IFileSystemPort) {
         super(engine, fileSystem);

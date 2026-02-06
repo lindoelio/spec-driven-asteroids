@@ -21,29 +21,21 @@ export interface ProjectAnalysisInfo {
 
 /**
  * Icons used throughout responses.
+ * Kept minimal for professional appearance - only status indicators.
  */
 export const Icons = {
+    // Status indicators (keep these)
     created: '✨',
     updated: '🔄',
     success: '✅',
     warning: '⚠️',
     error: '❌',
     pending: '⏳',
-    rocket: '🚀',
+
+    // Functional icons (used sparingly)
+    tip: '💡',
+    inProgress: '🔧',
     search: '🔍',
-    document: '📄',
-    folder: '📁',
-    lightbulb: '💡',
-    wrench: '🔧',
-    target: '🎯',
-    clipboard: '📋',
-    chart: '📊',
-    construction: '🚧',
-    wave: '👋',
-    seedling: '🌱',
-    party: '🎉',
-    thinking: '🤔',
-    robot: '🤖',
 } as const;
 
 /**
@@ -151,7 +143,7 @@ export class ResponseBuilder {
      */
     nextSteps(steps: string[]): void {
         this.stream.markdown(`\n---\n\n`);
-        this.stream.markdown(`${Icons.lightbulb} **What's next:**\n\n`);
+        this.stream.markdown(`${Icons.tip} **What's next:**\n\n`);
         steps.forEach(step => this.stream.markdown(`- ${step}\n`));
     }
 
@@ -159,7 +151,7 @@ export class ResponseBuilder {
      * Show a helpful tip.
      */
     tip(message: string): void {
-        this.stream.markdown(`\n${Icons.lightbulb} **Tip:** ${message}\n`);
+        this.stream.markdown(`\n${Icons.tip} **Tip:** ${message}\n`);
     }
 
     /**
@@ -181,13 +173,6 @@ export class ResponseBuilder {
      */
     markdown(content: string): void {
         this.stream.markdown(content);
-    }
-
-    /**
-     * Show a celebration message.
-     */
-    celebrate(message: string): void {
-        this.stream.markdown(`${Icons.party} ${message}\n`);
     }
 
     /**

@@ -45,11 +45,11 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('specdriven.openGuidelines', async () => {
             const items = [
                 { label: '$(person) AGENTS', description: 'AI agent instructions', path: GUIDELINES_PATHS.agents },
-                { label: '$(symbol-structure) Architecture', description: 'System structure and diagrams', path: GUIDELINES_PATHS.architecture },
-                { label: '$(law) Contributing', description: 'Coding standards', path: GUIDELINES_PATHS.contributing },
-                { label: '$(beaker) Testing', description: 'Testing strategy', path: GUIDELINES_PATHS.testing },
-                { label: '$(shield) Security', description: 'Security policy', path: GUIDELINES_PATHS.security },
-                { label: '$(paintcan) Styleguide', description: 'Code style conventions', path: GUIDELINES_PATHS.styleguide },
+                { label: '$(symbol-structure) ARCHITECTURE', description: 'System structure and diagrams', path: GUIDELINES_PATHS.architecture },
+                { label: '$(law) CONTRIBUTING', description: 'Coding standards', path: GUIDELINES_PATHS.contributing },
+                { label: '$(beaker) TESTING', description: 'Testing strategy', path: GUIDELINES_PATHS.testing },
+                { label: '$(shield) SECURITY', description: 'Security policy', path: GUIDELINES_PATHS.security },
+                { label: '$(paintcan) STYLEGUIDE', description: 'Code style conventions', path: GUIDELINES_PATHS.styleguide },
             ];
 
             const selected = await vscode.window.showQuickPick(items, {
@@ -77,13 +77,6 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
-        // === Refresh Commands ===
-        /*
-        // Handled by SpecsTreeProvider.registerCommands
-        vscode.commands.registerCommand('specdriven.refreshSpecs', () => {
-            specsProvider.refresh();
-        }),
-        */
         vscode.commands.registerCommand('specdriven.refreshGuidelines', () => {
             guidelinesProvider.refresh();
         })
