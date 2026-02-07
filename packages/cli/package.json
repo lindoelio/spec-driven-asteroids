@@ -1,6 +1,6 @@
 {
     "name": "spec-driven-asteroids",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "CLI to inject Spec Driven Asteroids standards into any repository",
     "type": "module",
     "main": "dist/index.js",
