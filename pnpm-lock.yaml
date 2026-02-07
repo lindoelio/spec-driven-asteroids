@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.30
+        specifier: ^25.2.1
+        version: 25.2.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -28,7 +28,7 @@ importers:
         version: 11.3.3
       inquirer:
         specifier: ^9.2.12
-        version: 9.3.8(@types/node@20.19.30)
+        version: 9.3.8(@types/node@20.19.32)
     devDependencies:
       '@types/fs-extra':
         specifier: ^11.0.4
@@ -38,7 +38,7 @@ importers:
         version: 9.0.9
       '@types/node':
         specifier: ^20.10.0
-        version: 20.19.30
+        version: 20.19.32
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -98,8 +98,8 @@ packages:
   '@types/jsonfile@6.1.4':
     resolution: {integrity: sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ==}
 
-  '@types/node@20.19.30':
-    resolution: {integrity: sha512-WJtwWJu7UdlvzEAUm484QNg5eAoq5QR08KDNx7g45Usrs2NtOPiX8ugDqmKdXkyL03rBqU5dYNYVQetEpBHq2g==}
+  '@types/node@20.19.32':
+    resolution: {integrity: sha512-Ez8QE4DMfhjjTsES9K2dwfV258qBui7qxUsoaixZDiTzbde4U12e1pXGNu/ECsUIOi5/zoCxAQxIhQnaUQ2VvA==}
 
   '@types/node@25.2.1':
     resolution: {integrity: sha512-CPrnr8voK8vC6eEtyRzvMpgp3VyVRhgclonE7qYi6P9sXwYb59ucfrnmFBTaP0yUi8Gk4yZg/LlTJULGxvTNsg==}
@@ -653,12 +653,12 @@ snapshots:
     dependencies:
       hono: 4.11.8
 
-  '@inquirer/external-editor@1.0.3(@types/node@20.19.30)':
+  '@inquirer/external-editor@1.0.3(@types/node@20.19.32)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.2
     optionalDependencies:
-      '@types/node': 20.19.30
+      '@types/node': 20.19.32
 
   '@inquirer/figures@1.0.15': {}
 
@@ -687,7 +687,7 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 20.19.30
+      '@types/node': 20.19.32
 
   '@types/inquirer@9.0.9':
     dependencies:
@@ -696,9 +696,9 @@ snapshots:
 
   '@types/jsonfile@6.1.4':
     dependencies:
-      '@types/node': 25.2.1
+      '@types/node': 20.19.32
 
-  '@types/node@20.19.30':
+  '@types/node@20.19.32':
     dependencies:
       undici-types: 6.21.0
 
@@ -708,7 +708,7 @@ snapshots:
 
   '@types/through@0.0.33':
     dependencies:
-      '@types/node': 25.2.1
+      '@types/node': 20.19.32
 
   accepts@2.0.0:
     dependencies:
@@ -974,9 +974,9 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  inquirer@9.3.8(@types/node@20.19.30):
+  inquirer@9.3.8(@types/node@20.19.32):
     dependencies:
-      '@inquirer/external-editor': 1.0.3(@types/node@20.19.30)
+      '@inquirer/external-editor': 1.0.3(@types/node@20.19.32)
       '@inquirer/figures': 1.0.15
       ansi-escapes: 4.3.2
       cli-width: 4.1.0

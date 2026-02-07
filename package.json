@@ -1,8 +1,12 @@
 {
-    "name": "spec-driven-agentic",
+    "name": "spec-driven-asteroids",
     "version": "0.1.0",
     "private": true,
-    "description": "Spec-Driven Development AI Assistant for building reliable software with agentic coding.",
+    "description": "Inject Spec-Driven Intelligence into your favorite AI Agents. Rigorous. Simple. Frictionless.",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lindoelio/spec-driven-asteroids.git"
+    },
     "author": "Lindoélio Lázaro <lindoelio@gmail.com>",
     "license": "MIT",
     "scripts": {
@@ -10,11 +14,10 @@
         "clean": "pnpm -r clean",
         "lint": "pnpm -r lint",
         "test": "pnpm -r test",
-        "typecheck": "pnpm -r typecheck",
-        "package": "pnpm --filter spec-driven-assistant-vscode package"
+        "typecheck": "pnpm -r typecheck"
     },
     "devDependencies": {
-        "@types/node": "^20.10.0",
+        "@types/node": "^25.2.1",
         "typescript": "^5.9.3"
     },
     "packageManager": "pnpm@9.0.0",

@@ -16,7 +16,7 @@
 
 ## Core Pillars
 
-1. **The Brain (Standards)**: Universal Markdown-based Skills and Agent Profiles that define specialized roles like `@spec-planner` and `@spec-designer`.
+1. **The Brain (Standards)**: Universal Markdown-based Skills and Agent Profiles that define specialized roles like `@spec-driven`.
 2. **The Enforcer (MCP)**: A background service that verifies EARS syntax, Mermaid diagrams, and requirement traceability.
 3. **The Injector (CLI)**: A simple tool to scaffold any repository with these standards in seconds.
 
@@ -64,7 +64,7 @@ Configure your AI tool to connect to the MCP server using `pnpm`:
   "mcpServers": {
     "spec-driven-asteroids": {
       "command": "pnpm",
-      "args": ["--dir", "/path/to/spec-driven-agentic-assistant/packages/mcp", "start"]
+      "args": ["--dir", "/path/to/spec-driven-asteroids/packages/mcp", "start"]
     }
   }
 }
@@ -72,15 +72,29 @@ Configure your AI tool to connect to the MCP server using `pnpm`:
 
 ## Usage
 
-### GitHub Copilot
-Use specialized custom agents directly in chat:
-- `@spec-planner`: Create EARS requirements.
-- `@spec-designer`: Create technical designs.
-- `@copilot`: Implement code following the approved specs.
+### 1. GitHub Copilot
+Once injected, you have access to a specialized **Custom Agent** directly in your chat.
 
-### Google Antigravity
-Use native workflows:
-- `/spec-driven-feature`: Orchestrates the full Requirements → Design → Task loop.
+*   **Plan a Feature**:
+    > `@spec-driven I want to add a rate limiter to the API.`
+    > *(The agent generates a slug and creates `specs/changes/rate-limiter/requirements.md`, `design.md`, and `tasks.md`)*
+
+*   **Implement**:
+    > `@copilot Implement the rate limiter following the tasks in specs/changes/rate-limiter/tasks.md.`
+
+### 2. Google Antigravity
+Use native **Workflows** to orchestrate the entire process.
+
+*   **Run the Full Loop**:
+    > `/spec-driven`
+    > *(Guides you through Requirements → Design → Tasks → Code, saving everything in `specs/changes/<slug>/`)*
+
+### 3. OpenCode / Claude Code
+Spec Driven Asteroids injects **Skills** that OpenCode discovers automatically.
+
+*   **Automatic Skill Detection**:
+    > "Create a plan for user authentication."
+    > *(OpenCode detects the `spec-driven-asteroids` skill and follows the folder and syntax standards)*
 
 ---
 
@@ -88,4 +102,5 @@ Use native workflows:
 
 - **EARS**: Easy Approach to Requirements Syntax (WHEN, IF, THEN, SHALL).
 - **Mermaid**: Standard visualization for architecture and sequence diagrams.
+- **Folder Convention**: `specs/changes/<slug>/[requirements.md | design.md | tasks.md]`.
 - **Traceability**: Every design and task must link back to a requirement ID.
